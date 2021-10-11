@@ -1,10 +1,13 @@
 import numpy as np
+import pandas as pd
 from scipy import stats, fft
 
 from scipy.stats import kurtosis, skew, variation, iqr
 from pyentrp import entropy as pent
 import antropy as ent
 from hurst import compute_Hc
+
+from typing import Tuple, List
 
 
 def crest_factor(x):
@@ -32,8 +35,14 @@ def get_stat_features(data):
 
 
 class Splitter:
-    def __init__(self, use_signal=True, use_specter=False, use_5_stats=True, use_15_stats=False):
-        """Constructor"""
+    def __init__(self,
+                 use_signal: bool = True,
+                 use_specter: bool = False,
+                 use_5_stats: bool = True,
+                 use_15_stats: bool = False):
+        """
+        Class implements chunk splittings of bearings_signals.csv dataset with subsequent processing of chunks
+        """
         self.use_signal = use_signal
         self.use_specter = use_specter
         self.use_5_stats = use_5_stats
@@ -42,7 +51,15 @@ class Splitter:
         self.splits_number = None
         self.frequency_data_columns = None
 
-    def split_dataset(self, dataset, targets, stable_area=(10, 20), splits_number=10, frequency_data_columns=None):
+    def split_dataset(self,
+                      dataset: pd.DataFrame,
+                      targets: pd.DataFrame,
+                      stable_area: Tuple[int, int] = (10, 20),
+                      splits_number: int = 10,
+                      frequency_data_columns: List[str] = None) -> np.ndarray:
+        """
+        Split dataset by chunks and return dataset with statistics of the chunks
+        """
         self.stable_area = stable_area
         self.splits_number = splits_number
         self.frequency_data_columns = frequency_data_columns
@@ -123,5 +140,4 @@ class Splitter:
                 else:
                     prepared = np.hstack((prepared, statistics_15.reshape(1, -1)))
         return prepared
-
 

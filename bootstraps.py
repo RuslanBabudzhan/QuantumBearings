@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -8,12 +9,23 @@ from sklearn.metrics import f1_score
 
 from InfFS import select_features
 
+from typing import Tuple, List, Dict
+
 
 class BootstrapModeler:
-    def __init__(self, named_estimators, bearing_indices, samples_number=100, train_sample_size=74,
-                 feature_dropping_ratio=0.25, should_scale=True, should_reduce_dim=False, should_logging=False,
-                 leave_positive_features=True):
-        """Constructor"""
+    def __init__(self,
+                 named_estimators: dict,
+                 bearing_indices: np.array,
+                 samples_number: int = 100,
+                 train_sample_size: int = 74,
+                 feature_dropping_ratio: float = 0.25,
+                 should_scale: bool = True,
+                 should_reduce_dim: bool = False,
+                 should_logging: bool = False,
+                 leave_positive_features: bool = True):
+        """
+        Class implements bootstrap resampling of test dataset to build a scores distribution for specific models
+        """
         self.named_estimators = named_estimators
         self.bearing_indices = bearing_indices
         self.samples_number = samples_number
@@ -27,43 +39,21 @@ class BootstrapModeler:
         self.feature_importance = None
         self.whole_experiments_number = 112
 
-    def run_bootstrap(self, data):
+    def run_bootstrap(self, data: pd.DataFrame) -> list:
         bootstrap_results = []
         marked_data = self.__mark_data(data)
         stratificated_data = marked_data[marked_data['bearing_id'].isin(self.bearing_indices)]
-        # print(len(self.bearing_indices))
-        # print(stratificated_data.shape)
         if self.should_reduce_dim:
-            columns = [str(col) for col in range(data.shape[1])]
-            named_data = stratificated_data.drop(labels='bearing_id', axis=1).copy()
-            named_data.columns = columns
-            # print(named_data.shape)
-            features_importance = select_features(named_data.iloc[:, 1:], named_data.iloc[:, 0], 0.5)
-            if self.leave_positive_features:
-                features_to_drop = features_importance[features_importance['importance'] < 0]['features'].to_numpy()
-            else:
-                features_to_drop_number = int(len(features_importance)*self.feature_dropping_ratio)
-                assert features_to_drop_number != len(features_importance), "all features must be dropped, " \
-                                                                            "reduce feature_dropping_ratio"
-                features_to_drop = features_importance[:features_to_drop_number]['features'].to_numpy()
-            self.deleted_features = features_to_drop
-            self.feature_importance = features_importance
-            reduced_data = named_data.drop(labels=features_to_drop, axis=1)
-            reduced_data.columns = [int(col_str) for col_str in reduced_data.columns]
-            reduced_data['bearing_id'] = stratificated_data['bearing_id']
+            reduced_data = self.__reduce_dimensions(stratificated_data)
             data_to_bootstrap = reduced_data
-            # print(data_to_bootstrap.shape)
-            # print(data_to_bootstrap.shape)
-            # marked_data = self.__mark_data(reduced_data)
         else:
             data_to_bootstrap = stratificated_data
-            # marked_data = self.__mark_data(data)
 
         for bootstrap_iteration in range(self.samples_number):
             np.random.shuffle(self.bearing_indices)
             resampling_results = self.__get_bootstrap_scores(data_to_bootstrap, self.bearing_indices)
             bootstrap_results.append(resampling_results)
-        return bootstrap_results
+        return bootstrap_results.copy()
 
     def __mark_data(self, data):
         records_number = len(data)
@@ -73,6 +63,26 @@ class BootstrapModeler:
         marked_data = data.copy()
         marked_data['bearing_id'] = records_labels.tolist()
         return marked_data
+
+    def __reduce_dimensions(self, stratificated_data):
+        # TODO: rewrite!
+        columns = [str(col) for col in range(stratificated_data.shape[1])]
+        named_data = stratificated_data.drop(labels='bearing_id', axis=1).copy()
+        named_data.columns = columns
+        features_importance = select_features(named_data.iloc[:, 1:], named_data.iloc[:, 0], 0.5)
+        if self.leave_positive_features:
+            features_to_drop = features_importance[features_importance['importance'] < 0]['features'].to_numpy()
+        else:
+            features_to_drop_number = int(len(features_importance)*self.feature_dropping_ratio)
+            assert features_to_drop_number != len(features_importance), "all features must be dropped, " \
+                                                                        "reduce feature_dropping_ratio"
+            features_to_drop = features_importance[:features_to_drop_number]['features'].to_numpy()
+        self.deleted_features = features_to_drop
+        self.feature_importance = features_importance
+        reduced_data = named_data.drop(labels=features_to_drop, axis=1)
+        reduced_data.columns = [int(col_str) for col_str in reduced_data.columns]
+        reduced_data['bearing_id'] = stratificated_data['bearing_id']
+        return reduced_data
 
     def __get_bootstrap_scores(self, data, shuffled_indices):
         train_indices = shuffled_indices[:self.train_sample_size]
