@@ -38,7 +38,7 @@ class BaseResultsData(ABC):
 
     Train_brg_id: List[int]  # Bearing indices used in training
     Test_brg_id: List[int]  # Bearing indices used in testing
-    Predictions: List[bool]  # Prediction for each bearing in Test_brg_id
+    Predictions: List[float]  # Prediction for each bearing in Test_brg_id
 
     Accuracy_score: float  # test accuracy score
     Precision_score: float  # test precision score
@@ -81,7 +81,6 @@ class BootstrapResults(BaseResultsData):
     F1_score: List[float]  # test f1 score for each resampling
 
 
-
 class Models(Enum):
     """Enumerated estimators"""
     # TODO: Add more models
@@ -118,7 +117,7 @@ class DimReducers(Enum):
     RFE: feature_selection.RFE
 
 
-def WriteResultToJSON(result: Union[SingleRunResults, KFoldGridSearchResults, BootstrapResults, list],
+def WriteResultToJSON(result: Union[BaseResultsData, List[BaseResultsData]],
                       filename: str,
                       filepath: str = None):
     if filepath:
