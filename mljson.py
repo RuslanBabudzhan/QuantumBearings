@@ -23,13 +23,9 @@ class EnhancedJSONEncoder(json.JSONEncoder):
 
 @dataclasses.dataclass
 @abstractmethod
-class BaseResults(ABC):
+class BaseResultsData(ABC):
+    RunLabel: str  # Label assigned to the result
     Model_name: str  # Name of the model (GBM, RF, etc.). Use Model.<model>.n
-
-
-@dataclasses.dataclass
-class SingleRunResults:
-    Model_name: str  # Name of the model (GBM, RF, etc.). Use Model.<model>.name
     Hyperparameters: dict  # dict with hyperparameters names as keys and hyperparameters values as values
 
     Use_signal: bool  # Was raw signal data used in training
@@ -51,6 +47,11 @@ class SingleRunResults:
 
 
 @dataclasses.dataclass
+class SingleRunResults(BaseResultsData):
+    pass
+
+
+@dataclasses.dataclass
 class KFoldGridSearchResults:
     HyperparametersGrid: dict  # dict with hyperparameters names as keys and lists of hyperparameters values as values
     cv_count: int  # folds number
@@ -60,29 +61,11 @@ class KFoldGridSearchResults:
     Recall_val_score: float  # mean validation recall score of best estimator
     F1_val_score: float  # mean validation f1 score of best estimator
 
-    BestModel: SingleRunResults  # SingleRunResults dataclass object with parameters of best estimator of GridSearch
-
 
 @dataclasses.dataclass
-class BootstrapResults:
-    Model_name: List[str]  # Name of the model (GBM, RF, etc.). Use Model.<model>.name
-    Hyperparameters: dict  # dict with hyperparameters names as keys and hyperparameters values as values
-
+class BootstrapResults(BaseResultsData):
     Resamplings_number: int  # number of .fit() calls for the model
 
-    Use_signal: bool  # Was raw signal data used in training
-    Use_specter: bool  # Was specter of signal used in training
-    Axes: List[str]  # Which axes were used in training. Use Axes.<axis>.name
-    Stats: List[str]  # Which statistics were used in training. Use Stats.<stat>.name
-
-    Train_brg_id: List[List[int]]  # Bearing indices used in training for each resampling
-    Test_brg_id: List[List[int]]  # Bearing indices used in testing for each resampling
-    Predictions: List[List[bool]]  # Prediction for each bearing in Test_brg_id
-
-    Accuracy_score: List[float]  # list of test accuracy score for each resampling
-    Precision_score: List[float]  # test precision score for each resampling
-    Recall_score: List[float]  # test recall score for each resampling
-    F1_score: List[float]  # test f1 score for each resampling
 
 
 class Models(Enum):
@@ -136,30 +119,38 @@ def WriteResultToJSON(result: Union[SingleRunResults, KFoldGridSearchResults, Bo
             json.dump(result, write_file, cls=EnhancedJSONEncoder)
 
 
-# import pandas as pd
-# prepared_data = pd.read_csv('processed_5stats.csv', header=None)
-#
-# X_train = prepared_data.to_numpy()[100:, 1:]
-# y_train = prepared_data.to_numpy()[100:, 0]
-# X_test = prepared_data.to_numpy()[:100, 1:]
-# y_test = prepared_data.to_numpy()[:100, 0]
-#
-# RFS_hyperparams = {'n_estimators': 50, 'max_depth': 6}
-#
-# RFC_estimator = RandomForestClassifier()
-# RFC_estimator.set_params(**RFS_hyperparams)
-# RFC_estimator.fit(X_train, y_train)
-# y_pred = RFC_estimator.predict(X_test)
-#
-# result_obj = SingleRunResults(Models.RF.name, RFS_hyperparams,
-#                               True, False, ['a1_x', 'a2_z'], ['mean', 'std'],
-#                               'RFE', [1, 2, 3],
-#                               [4, 5, 6, 7, 8, 9], [0, 1, 2, 3], list(y_pred),
-#                               0.95, 0.99, 0.0, 0.0)
-# result_obj2 = SingleRunResults(Models.RF.name, RFS_hyperparams,
-#                               True, True, ['a1_x', 'a2_z'], ['mean', 'std'],
-#                               'RFE', [1, 2, 3],
-#                               [4, 5, 6, 7, 8, 9], [0, 1, 2, 3], list(y_pred),
-#                               0.95, 0.99, 0.0, 0.0)
-#
-# WriteResultToJSON([result_obj, result_obj2], 'test_json', 'SimpleRunsJSONs')
+import pandas as pd
+prepared_data = pd.read_csv('Datasets/processed_5stats.csv', header=None)
+
+X_train = prepared_data.to_numpy()[100:, 1:]
+y_train = prepared_data.to_numpy()[100:, 0]
+X_test = prepared_data.to_numpy()[:100, 1:]
+y_test = prepared_data.to_numpy()[:100, 0]
+
+RFS_hyperparams = {'n_estimators': 50, 'max_depth': 6}
+
+RFC_estimator = RandomForestClassifier()
+RFC_estimator.set_params(**RFS_hyperparams)
+RFC_estimator.fit(X_train, y_train)
+y_pred = RFC_estimator.predict(X_test)
+
+result_obj = SingleRunResults("First_run", Models.RF.name, RFS_hyperparams,
+                              True, False, ['a1_x', 'a2_z'], ['mean', 'std'],
+                              'RFE', [1, 2, 3],
+                              [4, 5, 6, 7, 8, 9], [0, 1, 2, 3], list(y_pred),
+                              0.95, 0.99, 0.0, 0.0)
+result_obj2 = SingleRunResults("Second_run", Models.RF.name, RFS_hyperparams,
+                              True, True, ['a1_x', 'a2_z'], ['mean', 'std'],
+                              'RFE', [1, 2, 3],
+                              [4, 5, 6, 7, 8, 9], [0, 1, 2, 3], list(y_pred),
+                              0.95, 0.99, 0.0, 0.0)
+
+result_obj3 = BootstrapResults("Third_run", Models.RF.name, RFS_hyperparams,
+                               True, True, ['a1_x', 'a2_z'], ['mean', 'std'],
+                               'RFE', [1, 2, 3],
+                               [4, 5, 6, 7, 8, 9], [0, 1, 2, 3], list(y_pred),
+                               0.95, 0.99, 0.0, 0.0,
+                               100)
+
+
+WriteResultToJSON([result_obj, result_obj2, result_obj3], 'test_json', 'SimpleRunsJSONs')
