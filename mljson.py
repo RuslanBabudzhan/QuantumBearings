@@ -66,6 +66,20 @@ class KFoldGridSearchResults:
 class BootstrapResults(BaseResultsData):
     Resamplings_number: int  # number of .fit() calls for the model
 
+    Use_signal: bool  # Was raw signal data used in training
+    Use_specter: bool  # Was specter of signal used in training
+    Axes: List[str]  # Which axes was used in training. Use Axes.<axis>.name
+    Stats: List[str]  # Which axes was used in training. Use Stats.<axis>.name
+
+    Train_brg_id: List[List[int]]  # Bearing indices used in training for each resampling
+    Test_brg_id: List[List[int]]  # Bearing indices used in testing for each resampling
+    Predictions: List[List[bool]]  # Prediction for each bearing in Test_brg_id
+
+    Accuracy_score: List[float]  # list of test accuracy score for each resampling
+    Precision_score: List[float]  # test precision score for each resampling
+    Recall_score: List[float]  # test recall score for each resampling
+    F1_score: List[float]  # test f1 score for each resampling
+
 
 
 class Models(Enum):
