@@ -14,6 +14,8 @@ from sklearn import feature_selection
 import sklearn.metrics as metrics
 from abc import ABC, abstractmethod
 
+import statistics
+
 
 class EnhancedJSONEncoder(json.JSONEncoder):
     def default(self, o):
@@ -118,10 +120,26 @@ class Stats(Enum):
     kurtosis = stats.kurtosis
     skew = stats.skew
     variation = stats.variation
+    range = statistics.stat_range
+    iqr = stats.iqr
+    sample_entropy = statistics.sample_entropy
+    shannon_entropy = statistics.shannon_entropy
+    energy = statistics.energy
+    hurst = statistics.hurst
+    petrosian_fd = statistics.petrosian_fd
+    zero_crossing = statistics.zero_crossing
+    higuchi_fd = statistics.higuchi_fd
+    activity = statistics.activity
+    complexity = statistics.complexity
+    crest_factor = statistics.crest_factor
 
     @staticmethod
     def get_keys() -> List[str]:
         return list(map(lambda c: c.name, Stats))
+
+    # @staticmethod
+    # def get_keys() -> List[str]:
+    #     return [el.name for el in Stats]
 
 
 class DimReducers(Enum):
@@ -159,6 +177,3 @@ def WriteResultToJSON(result: Union[BaseResultsData, List[BaseResultsData]],
                 json.dump(result_object, write_file, cls=EnhancedJSONEncoder)
         else:
             json.dump(result, write_file, cls=EnhancedJSONEncoder)
-
-# @dataclasses.dataclass
-# class LogMetaData:
