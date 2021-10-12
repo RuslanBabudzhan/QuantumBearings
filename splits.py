@@ -59,14 +59,11 @@ class Splitter:
         self.stats = set()
         if self.use_5_stats:
             for statistic_index in range(5):
-                print(statistic_index)
-                self.stats.add(Stats[full_stats_list[statistic_index]])
+                self.stats.add(Stats[full_stats_list[statistic_index]].value())
 
         if self.use_15_stats:
             for statistic_index in range(2, 17):
-                print(statistic_index)
                 self.stats.add(Stats[full_stats_list[statistic_index]])
-
 
     def split_dataset(self,
                       dataset: pd.DataFrame,
@@ -137,27 +134,14 @@ class Splitter:
             data = [raw_data, np.abs(fft.fft(raw_data))]
 
         for data_element in data:
-            # TODO: rewrite for using self.stats
-            if self.use_5_stats:
-                statistics_5 = [np.mean(data_element),
-                                np.std(data_element),
-                                stats.kurtosis(data_element),
-                                stats.skew(data_element),
-                                stats.variation(data_element)]
-                statistics_5 = np.array(statistics_5)
+            statistic_values = []
+            for statistic_function in self.stats:
+                statistic_values.append(statistic_function.count_stat(data_element))
+            statistic_values = np.array(statistic_values)
 
-                if prepared is None:
-                    prepared = statistics_5.reshape(1, -1)
-                else:
-                    prepared = np.hstack((prepared, statistics_5.reshape(1, -1)))
-
-            if self.use_15_stats:
-                statistics_15 = get_stat_features(data_element)
-                if prepared is None:
-                    prepared = statistics_15.reshape(1, -1)
-                else:
-                    prepared = np.hstack((prepared, statistics_15.reshape(1, -1)))
+            if prepared is None:
+                prepared = statistic_values.reshape(1, -1)
+            else:
+                prepared = np.hstack((prepared, statistic_values.reshape(1, -1)))
         return prepared
 
-
-splitter = Splitter(use_specter=True, use_5_stats=True, use_15_stats=True)
