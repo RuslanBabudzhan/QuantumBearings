@@ -114,32 +114,27 @@ class Axes(Enum):
 
 class Stats(Enum):
     """Enumerated statistics to use in data preparation"""
-    # TODO: Add more statistics
-    mean = np.mean
-    std = np.std
-    kurtosis = stats.kurtosis
-    skew = stats.skew
-    variation = stats.variation
-    range = statistics.stat_range
-    iqr = stats.iqr
-    sample_entropy = statistics.sample_entropy
-    shannon_entropy = statistics.shannon_entropy
-    energy = statistics.energy
-    hurst = statistics.hurst
-    petrosian_fd = statistics.petrosian_fd
-    zero_crossing = statistics.zero_crossing
-    higuchi_fd = statistics.higuchi_fd
-    activity = statistics.activity
-    complexity = statistics.complexity
-    crest_factor = statistics.crest_factor
+    mean = statistics.Mean
+    std = statistics.STD
+    kurtosis = statistics.Kurtosis
+    skew = statistics.Skew
+    variation = statistics.Variation
+    range = statistics.StatRange
+    iqr = statistics.IQR
+    sample_entropy = statistics.SampleEntropy
+    shannon_entropy = statistics.ShannonEntropy
+    energy = statistics.Energy
+    hurst = statistics.Hurst
+    petrosian_fd = statistics.PetrosianFD
+    zero_crossing = statistics.ZeroCrossing
+    higuchi_fd = statistics.HiguchiFD
+    activity = statistics.Activity
+    complexity = statistics.Complexity
+    crest_factor = statistics.CrestFactor
 
     @staticmethod
     def get_keys() -> List[str]:
         return list(map(lambda c: c.name, Stats))
-
-    # @staticmethod
-    # def get_keys() -> List[str]:
-    #     return [el.name for el in Stats]
 
 
 class DimReducers(Enum):

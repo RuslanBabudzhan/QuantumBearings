@@ -11,6 +11,8 @@ from typing import Tuple, List
 
 from dataclasses import dataclass
 
+from mljson import Stats
+
 
 def crest_factor(x):
     return np.max(np.abs(x)) / np.sqrt(np.mean(np.square(x)))
@@ -52,7 +54,19 @@ class Splitter:
         self.stable_area = None
         self.splits_number = None
         self.frequency_data_columns = None
-        # TODO: rewrite stats for mljson.Stats
+
+        full_stats_list = Stats.get_keys()
+        self.stats = set()
+        if self.use_5_stats:
+            for statistic_index in range(5):
+                print(statistic_index)
+                self.stats.add(Stats[full_stats_list[statistic_index]])
+
+        if self.use_15_stats:
+            for statistic_index in range(2, 17):
+                print(statistic_index)
+                self.stats.add(Stats[full_stats_list[statistic_index]])
+
 
     def split_dataset(self,
                       dataset: pd.DataFrame,
@@ -123,6 +137,7 @@ class Splitter:
             data = [raw_data, np.abs(fft.fft(raw_data))]
 
         for data_element in data:
+            # TODO: rewrite for using self.stats
             if self.use_5_stats:
                 statistics_5 = [np.mean(data_element),
                                 np.std(data_element),
@@ -143,3 +158,6 @@ class Splitter:
                 else:
                     prepared = np.hstack((prepared, statistics_15.reshape(1, -1)))
         return prepared
+
+
+splitter = Splitter(use_specter=True, use_5_stats=True, use_15_stats=True)

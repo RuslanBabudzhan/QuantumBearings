@@ -36,7 +36,6 @@ class BootstrapModeler:
         self.should_scale = should_scale
         self.should_logging = should_logging
         self.should_reduce_dim = should_reduce_dim
-        # self.reducing_method = reducing_method
         self.feature_dropping_ratio = feature_dropping_ratio
         self.leave_positive_features = leave_positive_features
         self.deleted_features = None
@@ -59,8 +58,6 @@ class BootstrapModeler:
             raise Exception("splits.Splitter() instance must be attached for logging")
 
         bootstrap_results = []
-        # for estimator_name in self.named_estimators.keys():
-        #     bootstrap_results[estimator_name] = []
 
         marked_data = self.__mark_data(data)
         stratificated_data = marked_data[marked_data['bearing_id'].isin(self.bearing_indices)]
