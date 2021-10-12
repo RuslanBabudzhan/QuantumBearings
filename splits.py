@@ -9,8 +9,6 @@ from hurst import compute_Hc
 
 from typing import Tuple, List
 
-from dataclasses import dataclass
-
 from mljson import Stats
 
 
@@ -59,11 +57,19 @@ class Splitter:
         self.stats = set()
         if self.use_5_stats:
             for statistic_index in range(5):
-                self.stats.add(Stats[full_stats_list[statistic_index]].value())
+                self.stats.add((
+                    Stats[full_stats_list[statistic_index]].name,
+                    Stats[full_stats_list[statistic_index]].value
+                ))
 
         if self.use_15_stats:
             for statistic_index in range(2, 17):
-                self.stats.add(Stats[full_stats_list[statistic_index]])
+                self.stats.add((
+                    Stats[full_stats_list[statistic_index]].name,
+                    Stats[full_stats_list[statistic_index]].value
+                ))
+
+        self.stats = dict(list(self.stats))
 
     def split_dataset(self,
                       dataset: pd.DataFrame,
@@ -135,7 +141,7 @@ class Splitter:
 
         for data_element in data:
             statistic_values = []
-            for statistic_function in self.stats:
+            for statistic_function in self.stats.values():
                 statistic_values.append(statistic_function.count_stat(data_element))
             statistic_values = np.array(statistic_values)
 
@@ -144,4 +150,3 @@ class Splitter:
             else:
                 prepared = np.hstack((prepared, statistic_values.reshape(1, -1)))
         return prepared
-

@@ -1,10 +1,13 @@
 import numpy as np
 import scipy.stats as stats
+import statistics
 
 import dataclasses
 import json
 from typing import List, Union
 from enum import Enum
+from abc import ABC, abstractmethod
+from pydantic import BaseModel
 
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.svm import SVC
@@ -12,9 +15,6 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn import feature_selection
 import sklearn.metrics as metrics
-from abc import ABC, abstractmethod
-
-import statistics
 
 
 class EnhancedJSONEncoder(json.JSONEncoder):
@@ -24,9 +24,9 @@ class EnhancedJSONEncoder(json.JSONEncoder):
         return super().default(o)
 
 
-@dataclasses.dataclass
+# @dataclasses.dataclass
 @abstractmethod
-class BaseResultsData(ABC):
+class BaseResultsData(ABC, BaseModel):
     run_label: str  # Label assigned to the result
     model_name: str  # Name of the model (GBM, RF, etc.). Use Model.<model>.n
     hyperparameters: dict  # dict with hyperparameters names as keys and hyperparameters values as values
@@ -49,13 +49,13 @@ class BaseResultsData(ABC):
     f1_score: float  # test f1 score
 
 
-@dataclasses.dataclass
+# @dataclasses.dataclass
 class SingleRunResults(BaseResultsData):
     pass
 
 
-@dataclasses.dataclass
-class KFoldGridSearchResults:
+# @dataclasses.dataclass
+class KFoldGridSearchResults(BaseResultsData):
     hyperparameters_grid: dict  # dict with hyperparameters names as keys and lists of hyperparameters values as values
     cv_count: int  # folds number
 
@@ -65,14 +65,9 @@ class KFoldGridSearchResults:
     f1_val_score: float  # mean validation f1 score of best estimator
 
 
-@dataclasses.dataclass
+# @dataclasses.dataclass
 class BootstrapResults(BaseResultsData):
     resampling_number: int  # number of .fit() calls for the model
-
-    # use_signal: bool  # Was raw signal data used in training
-    # use_specter: bool  # Was specter of signal used in training
-    # axes: List[str]  # Which axes was used in training. Use Axes.<axis>.name
-    # stats: List[str]  # Which axes was used in training. Use Stats.<axis>.name
 
     train_brg_id: List[List[int]]  # Bearing indices used in training for each resampling
     test_brg_id: List[List[int]]  # Bearing indices used in testing for each resampling
@@ -159,16 +154,19 @@ class Metrics(Enum):
         return list(map(lambda c: c.name, Metrics))
 
 
-def WriteResultToJSON(result: Union[BaseResultsData, List[BaseResultsData]],
-                      filename: str,
-                      filepath: str = None):
+def WriteResultToJSON(result: dict, filename: str, filepath: str = None):
     if filepath:
         fullname = f"{filepath}/{filename}.json"
     else:
         fullname = f"{filename}.json"
     with open(fullname, "w") as write_file:
-        if result is list:
-            for result_object in result:
-                json.dump(result_object, write_file, cls=EnhancedJSONEncoder)
-        else:
-            json.dump(result, write_file, cls=EnhancedJSONEncoder)
+        json.dump(result, write_file, cls=EnhancedJSONEncoder)
+
+
+def ReadJSON(filename: str, filepath: str = None) -> str:
+    if filepath:
+        fullname = f"{filepath}/{filename}.json"
+    else:
+        fullname = f"{filename}.json"
+    with open(fullname, "r") as read_file:
+        return read_file.read()
