@@ -3,26 +3,29 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
 
 from InfFS import select_features
 
 from typing import Tuple, List, Dict
+from mljson import BootstrapResults, DimReducers, Metrics, WriteResultToJSON
+from splits import Splitter
 
 
 class BootstrapModeler:
     def __init__(self,
                  named_estimators: dict,
-                 bearing_indices: np.array,
+                 bearing_indices: np.array = np.arange(1, 113),
                  samples_number: int = 100,
                  train_sample_size: int = 74,
                  feature_dropping_ratio: float = 0.25,
                  should_scale: bool = True,
                  should_reduce_dim: bool = False,
+                 reducing_method_name: str = 'RFE',
                  should_logging: bool = False,
-                 leave_positive_features: bool = True):
+                 leave_positive_features: bool = True,
+                 splitter: Splitter = None):
         """
         Class implements bootstrap resampling of test dataset to build a scores distribution for specific models
         """
@@ -33,16 +36,35 @@ class BootstrapModeler:
         self.should_scale = should_scale
         self.should_logging = should_logging
         self.should_reduce_dim = should_reduce_dim
+        # self.reducing_method = reducing_method
         self.feature_dropping_ratio = feature_dropping_ratio
         self.leave_positive_features = leave_positive_features
         self.deleted_features = None
         self.feature_importance = None
         self.whole_experiments_number = 112
+        self.splitter = splitter
+
+        if reducing_method_name not in DimReducers.get_keys():
+            raise ValueError(f'bootstrap supports only {DimReducers.get_keys()} dim reducing methods. '
+                             f'Got {reducing_method_name}')
+        else:
+            self.reducing_method = DimReducers[reducing_method_name]
+
+        if self.should_logging:
+            self.train_indices = []
+            self.test_indices = []
 
     def run_bootstrap(self, data: pd.DataFrame) -> list:
+        if self.should_logging and not isinstance(self.splitter, Splitter):
+            raise Exception("splits.Splitter() instance must be attached for logging")
+
         bootstrap_results = []
+        # for estimator_name in self.named_estimators.keys():
+        #     bootstrap_results[estimator_name] = []
+
         marked_data = self.__mark_data(data)
         stratificated_data = marked_data[marked_data['bearing_id'].isin(self.bearing_indices)]
+        # TODO: implement dimension reducing (with selected features indices saving for logging)
         if self.should_reduce_dim:
             reduced_data = self.__reduce_dimensions(stratificated_data)
             data_to_bootstrap = reduced_data
@@ -51,38 +73,13 @@ class BootstrapModeler:
 
         for bootstrap_iteration in range(self.samples_number):
             np.random.shuffle(self.bearing_indices)
+
             resampling_results = self.__get_bootstrap_scores(data_to_bootstrap, self.bearing_indices)
             bootstrap_results.append(resampling_results)
+
+        if self.should_logging:
+            self.__create_log_file(bootstrap_results.copy())
         return bootstrap_results.copy()
-
-    def __mark_data(self, data):
-        records_number = len(data)
-        records_number_for_bearing = int(records_number/self.whole_experiments_number)
-        whole_indices = np.arange(1, self.whole_experiments_number+1)
-        records_labels = np.repeat(whole_indices, records_number_for_bearing)
-        marked_data = data.copy()
-        marked_data['bearing_id'] = records_labels.tolist()
-        return marked_data
-
-    def __reduce_dimensions(self, stratificated_data):
-        # TODO: rewrite!
-        columns = [str(col) for col in range(stratificated_data.shape[1])]
-        named_data = stratificated_data.drop(labels='bearing_id', axis=1).copy()
-        named_data.columns = columns
-        features_importance = select_features(named_data.iloc[:, 1:], named_data.iloc[:, 0], 0.5)
-        if self.leave_positive_features:
-            features_to_drop = features_importance[features_importance['importance'] < 0]['features'].to_numpy()
-        else:
-            features_to_drop_number = int(len(features_importance)*self.feature_dropping_ratio)
-            assert features_to_drop_number != len(features_importance), "all features must be dropped, " \
-                                                                        "reduce feature_dropping_ratio"
-            features_to_drop = features_importance[:features_to_drop_number]['features'].to_numpy()
-        self.deleted_features = features_to_drop
-        self.feature_importance = features_importance
-        reduced_data = named_data.drop(labels=features_to_drop, axis=1)
-        reduced_data.columns = [int(col_str) for col_str in reduced_data.columns]
-        reduced_data['bearing_id'] = stratificated_data['bearing_id']
-        return reduced_data
 
     def __get_bootstrap_scores(self, data, shuffled_indices):
         train_indices = shuffled_indices[:self.train_sample_size]
@@ -106,24 +103,98 @@ class BootstrapModeler:
 
         estimators_data = {}
 
+        if self.should_logging:
+            self.train_indices.append(train_indices.tolist())
+            self.test_indices.append(test_indices.tolist())
+
         for estimator_name, estimator in zip(self.named_estimators.keys(), self.named_estimators.values()):
             estimator.fit(X_train, y_train)
             current_estimator_test_predictions = estimator.predict(X_test)
-            base_estimator_test_score = f1_score(y_test, current_estimator_test_predictions)
-            current_estimator_results = {'score': base_estimator_test_score}
-            if self.should_logging:
-                current_estimator_results['train_indices'] = train_indices.copy()
-                current_estimator_results['test_indices'] = test_indices.copy()
+
+            current_estimator_results = {
+                'accuracy': accuracy_score(y_test, current_estimator_test_predictions),
+                'precision': precision_score(y_test, current_estimator_test_predictions),
+                'recall': recall_score(y_test, current_estimator_test_predictions),
+                'f1': f1_score(y_test, current_estimator_test_predictions),
+                'predictions': current_estimator_test_predictions.tolist()
+            }
             estimators_data[estimator_name] = current_estimator_results.copy()
 
         return estimators_data.copy()
+
+    def __mark_data(self, data):
+        records_number = len(data)
+        records_number_for_bearing = int(records_number / self.whole_experiments_number)
+        whole_indices = np.arange(1, self.whole_experiments_number + 1)
+        records_labels = np.repeat(whole_indices, records_number_for_bearing)
+        marked_data = data.copy()
+        marked_data['bearing_id'] = records_labels.tolist()
+        return marked_data
+
+    def __reduce_dimensions(self, stratificated_data):
+        # TODO: rewrite!
+        columns = [str(col) for col in range(stratificated_data.shape[1])]
+        named_data = stratificated_data.drop(labels='bearing_id', axis=1).copy()
+        named_data.columns = columns
+        features_importance = select_features(named_data.iloc[:, 1:], named_data.iloc[:, 0], 0.5)
+        if self.leave_positive_features:
+            features_to_drop = features_importance[features_importance['importance'] < 0]['features'].to_numpy()
+        else:
+            features_to_drop_number = int(len(features_importance) * self.feature_dropping_ratio)
+            assert features_to_drop_number != len(features_importance), "all features must be dropped, " \
+                                                                        "reduce feature_dropping_ratio"
+            features_to_drop = features_importance[:features_to_drop_number]['features'].to_numpy()
+        self.deleted_features = features_to_drop
+        self.feature_importance = features_importance
+        reduced_data = named_data.drop(labels=features_to_drop, axis=1)
+        reduced_data.columns = [int(col_str) for col_str in reduced_data.columns]
+        reduced_data['bearing_id'] = stratificated_data['bearing_id']
+        return reduced_data
+
+    def __create_log_file(self, results):
+        models_names = self.named_estimators.keys()
+        resampling_results_names = ['accuracy', 'precision', 'recall', 'f1', 'predictions']
+        for model_name in models_names:
+            model_scores = {}
+            for result_name in resampling_results_names:
+                model_score = [result[model_name][result_name] for result in results]
+                model_scores[result_name] = model_score.copy()
+
+            results_logger = BootstrapResults(
+                run_label='test',
+                model_name=model_name,
+                hyperparameters=self.named_estimators[model_name].get_params(),
+
+                use_signal=self.splitter.use_signal,
+                use_specter=self.splitter.use_specter,
+                axes=self.splitter.frequency_data_columns,
+                # stats=self.splitter.stats,
+                stats=[],
+
+                dim_reducing_method=self.reducing_method.name,
+                # selected_features_ids = self.selected_features_ids
+                selected_features_ids=[],
+
+                train_brg_id=self.train_indices,
+                test_brg_id=self.test_indices,
+                predictions=model_scores['predictions'],
+
+                accuracy_score=model_scores['accuracy'],
+                precision_score=model_scores['precision'],
+                recall_score=model_scores['recall'],
+                f1_score=model_scores['f1'],
+
+                resampling_number=self.samples_number
+                # TODO: replace empty stats and selected_features_ids fields with proper data
+            )
+            WriteResultToJSON(results_logger, "test_bootstrap_"+model_name, "BootstrapJSONs")
 
     def plot_bootstrap_results(self, results, plot_subtitle=None, verbose=True):
         plt.figure(figsize=(11, 6), dpi=80)
         palette = iter(sns.husl_palette(len(self.named_estimators)))
         alpha = 0.95
         for estimator_name in list(self.named_estimators.keys()):
-            estimator_scores = [resampling_result[estimator_name]['score'] for resampling_result in results]
+            estimator_scores = [resampling_result[estimator_name]['f1'] for resampling_result in results]
             if verbose:
                 print(f'mean base estimator ({estimator_name}) score: {np.round(np.mean(estimator_scores), 3)}')
             sns.kdeplot(estimator_scores, alpha=alpha, label=f'{estimator_name} score', color=next(palette))

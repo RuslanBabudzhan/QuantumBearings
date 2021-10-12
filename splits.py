@@ -9,6 +9,8 @@ from hurst import compute_Hc
 
 from typing import Tuple, List
 
+from dataclasses import dataclass
+
 
 def crest_factor(x):
     return np.max(np.abs(x)) / np.sqrt(np.mean(np.square(x)))
@@ -50,6 +52,7 @@ class Splitter:
         self.stable_area = None
         self.splits_number = None
         self.frequency_data_columns = None
+        # TODO: rewrite stats for mljson.Stats
 
     def split_dataset(self,
                       dataset: pd.DataFrame,
@@ -140,4 +143,3 @@ class Splitter:
                 else:
                     prepared = np.hstack((prepared, statistics_15.reshape(1, -1)))
         return prepared
-

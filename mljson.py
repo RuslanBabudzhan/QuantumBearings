@@ -11,6 +11,7 @@ from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn import feature_selection
+import sklearn.metrics as metrics
 from abc import ABC, abstractmethod
 
 
@@ -24,26 +25,26 @@ class EnhancedJSONEncoder(json.JSONEncoder):
 @dataclasses.dataclass
 @abstractmethod
 class BaseResultsData(ABC):
-    RunLabel: str  # Label assigned to the result
-    Model_name: str  # Name of the model (GBM, RF, etc.). Use Model.<model>.n
-    Hyperparameters: dict  # dict with hyperparameters names as keys and hyperparameters values as values
+    run_label: str  # Label assigned to the result
+    model_name: str  # Name of the model (GBM, RF, etc.). Use Model.<model>.n
+    hyperparameters: dict  # dict with hyperparameters names as keys and hyperparameters values as values
 
-    Use_signal: bool  # Was raw signal data used in training
-    Use_specter: bool  # Was specter of signal used in training
-    Axes: List[str]  # Which axes were used in training. Use Axes.<axis>.name
-    Stats: List[str]  # Which statistics were used in training. Use Stats.<stat>.name
+    use_signal: bool  # Was raw signal data used in training
+    use_specter: bool  # Was specter of signal used in training
+    axes: List[str]  # Which axes were used in training. Use Axes.<axis>.name
+    stats: List[str]  # Which statistics were used in training. Use Stats.<stat>.name
 
-    DimReducingMethod: str  # method of dimensionality reduction
+    dim_reducing_method: str  # method of dimensionality reduction
     selected_features_ids: List[int]  # indices of features returned by DimReducingMethod and selected for training
 
-    Train_brg_id: List[int]  # Bearing indices used in training
-    Test_brg_id: List[int]  # Bearing indices used in testing
-    Predictions: List[float]  # Prediction for each bearing in Test_brg_id
+    train_brg_id: List[int]  # Bearing indices used in training
+    test_brg_id: List[int]  # Bearing indices used in testing
+    predictions: List[float]  # Prediction for each bearing in Test_brg_id
 
-    Accuracy_score: float  # test accuracy score
-    Precision_score: float  # test precision score
-    Recall_score: float  # test recall score
-    F1_score: float  # test f1 score
+    accuracy_score: float  # test accuracy score
+    precision_score: float  # test precision score
+    recall_score: float  # test recall score
+    f1_score: float  # test f1 score
 
 
 @dataclasses.dataclass
@@ -53,32 +54,32 @@ class SingleRunResults(BaseResultsData):
 
 @dataclasses.dataclass
 class KFoldGridSearchResults:
-    HyperparametersGrid: dict  # dict with hyperparameters names as keys and lists of hyperparameters values as values
+    hyperparameters_grid: dict  # dict with hyperparameters names as keys and lists of hyperparameters values as values
     cv_count: int  # folds number
 
-    Accuracy_val_score: float  # mean validation accuracy score of best estimator
-    Precision_val_score: float  # mean validation precision score of best estimator
-    Recall_val_score: float  # mean validation recall score of best estimator
-    F1_val_score: float  # mean validation f1 score of best estimator
+    accuracy_val_score: float  # mean validation accuracy score of best estimator
+    precision_val_score: float  # mean validation precision score of best estimator
+    recall_val_score: float  # mean validation recall score of best estimator
+    f1_val_score: float  # mean validation f1 score of best estimator
 
 
 @dataclasses.dataclass
 class BootstrapResults(BaseResultsData):
-    Resamplings_number: int  # number of .fit() calls for the model
+    resampling_number: int  # number of .fit() calls for the model
 
-    Use_signal: bool  # Was raw signal data used in training
-    Use_specter: bool  # Was specter of signal used in training
-    Axes: List[str]  # Which axes was used in training. Use Axes.<axis>.name
-    Stats: List[str]  # Which axes was used in training. Use Stats.<axis>.name
+    # use_signal: bool  # Was raw signal data used in training
+    # use_specter: bool  # Was specter of signal used in training
+    # axes: List[str]  # Which axes was used in training. Use Axes.<axis>.name
+    # stats: List[str]  # Which axes was used in training. Use Stats.<axis>.name
 
-    Train_brg_id: List[List[int]]  # Bearing indices used in training for each resampling
-    Test_brg_id: List[List[int]]  # Bearing indices used in testing for each resampling
-    Predictions: List[List[bool]]  # Prediction for each bearing in Test_brg_id
+    train_brg_id: List[List[int]]  # Bearing indices used in training for each resampling
+    test_brg_id: List[List[int]]  # Bearing indices used in testing for each resampling
+    predictions: List[List[bool]]  # Prediction for each bearing in Test_brg_id
 
-    Accuracy_score: List[float]  # list of test accuracy score for each resampling
-    Precision_score: List[float]  # test precision score for each resampling
-    Recall_score: List[float]  # test recall score for each resampling
-    F1_score: List[float]  # test f1 score for each resampling
+    accuracy_score: List[float]  # list of test accuracy score for each resampling
+    precision_score: List[float]  # test precision score for each resampling
+    recall_score: List[float]  # test recall score for each resampling
+    f1_score: List[float]  # test f1 score for each resampling
 
 
 class Models(Enum):
@@ -90,6 +91,10 @@ class Models(Enum):
     LR = LogisticRegression
     KNN = KNeighborsClassifier
 
+    @staticmethod
+    def get_keys() -> List[str]:
+        return list(map(lambda c: c.name, Models))
+
 
 class Axes(Enum):
     """Enumerated axes from raw signals dataset (bearing_signals.csv)"""
@@ -100,21 +105,45 @@ class Axes(Enum):
     a2_y = 8
     a2_z = 9
 
+    @staticmethod
+    def get_keys() -> List[str]:
+        return list(map(lambda c: c.name, Axes))
+
 
 class Stats(Enum):
     """Enumerated statistics to use in data preparation"""
     # TODO: Add more statistics
-    mean: np.mean
-    std: np.std
-    kurtosis: stats.kurtosis
-    skew: stats.skew
-    variation: stats.variation
+    mean = np.mean
+    std = np.std
+    kurtosis = stats.kurtosis
+    skew = stats.skew
+    variation = stats.variation
+
+    @staticmethod
+    def get_keys() -> List[str]:
+        return list(map(lambda c: c.name, Stats))
 
 
 class DimReducers(Enum):
     """Enumerated dimensionality reduces to use before fitting the model"""
     # TODO: Add more reducers
-    RFE: feature_selection.RFE
+    RFE = feature_selection.RFE
+
+    @staticmethod
+    def get_keys() -> List[str]:
+        return list(map(lambda c: c.name, DimReducers))
+
+
+class Metrics(Enum):
+    """Enumerated metrics"""
+    accuracy = metrics.accuracy_score
+    precision = metrics.precision_score
+    recall = metrics.recall_score
+    f1 = metrics.f1_score
+
+    @staticmethod
+    def get_keys() -> List[str]:
+        return list(map(lambda c: c.name, Metrics))
 
 
 def WriteResultToJSON(result: Union[BaseResultsData, List[BaseResultsData]],
@@ -130,3 +159,6 @@ def WriteResultToJSON(result: Union[BaseResultsData, List[BaseResultsData]],
                 json.dump(result_object, write_file, cls=EnhancedJSONEncoder)
         else:
             json.dump(result, write_file, cls=EnhancedJSONEncoder)
+
+# @dataclasses.dataclass
+# class LogMetaData:
