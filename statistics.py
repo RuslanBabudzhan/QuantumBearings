@@ -4,6 +4,10 @@ from hurst import compute_Hc
 import numpy as np
 from scipy import stats
 
+"""
+This file implements statistics for features generation
+"""
+
 
 class Mean:
     @staticmethod

@@ -1,20 +1,25 @@
+from enum import Enum
+from typing import List
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from enum import Enum
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
 
 from InfFS import select_features
-
-from typing import Tuple, List, Dict
-from mljson import SingleRunResults, BootstrapResults, DimReducers, Metrics, WriteResultToJSON
+from mljson import write_result_obj_to_json
+from datamodels import SingleRunResults, BootstrapResults, DimReducers
 from splits import Splitter
 
 
 class BootstrapModeler:
+    """
+    Class implements bootstrap resampling of test dataset to build a scores distribution for specific models
+    """
+
     def __init__(self,
                  named_estimators: dict,
                  bearing_indices: np.array = np.arange(1, 113),
@@ -24,13 +29,9 @@ class BootstrapModeler:
                  should_scale: bool = True,
                  should_reduce_dim: bool = False,
                  reducing_method_name: str = 'RFE',
-                 # should_logging: bool = False,
                  logging_type: str = 'silent',
                  leave_positive_features: bool = True,
                  splitter: Splitter = None):
-        """
-        Class implements bootstrap resampling of test dataset to build a scores distribution for specific models
-        """
         self.named_estimators = named_estimators
         self.bearing_indices = bearing_indices
         self.samples_number = samples_number
@@ -45,6 +46,8 @@ class BootstrapModeler:
         self.whole_experiments_number = 112
         self.splitter = splitter
         self.total_bootstraps_number = 0
+        self.bootstrap_log_folder = "BootstrapJSONs"
+        self.separated_log_folder = "SimpleRunsJSONs"
 
         if reducing_method_name not in DimReducers.get_keys():
             raise ValueError(f'bootstrap supports only {DimReducers.get_keys()} dim reducing methods. '
@@ -108,15 +111,15 @@ class BootstrapModeler:
         records_train = records_train.to_numpy()
         records_test = records_test.to_numpy()
 
-        X_train = records_train[:, 1:records_train.shape[1] - 1]
+        x_train = records_train[:, 1:records_train.shape[1] - 1]
         y_train = records_train[:, 0]
-        X_test = records_test[:, 1:records_test.shape[1] - 1]
+        x_test = records_test[:, 1:records_test.shape[1] - 1]
         y_test = records_test[:, 0]
 
         if self.should_scale:
             scaler = StandardScaler()
-            X_train = scaler.fit_transform(X_train)
-            X_test = scaler.transform(X_test)
+            x_train = scaler.fit_transform(x_train)
+            x_test = scaler.transform(x_test)
 
         estimators_data = {}
 
@@ -125,8 +128,8 @@ class BootstrapModeler:
             self.test_indices.append(test_indices.tolist())
 
         for estimator_name, estimator in zip(self.named_estimators.keys(), self.named_estimators.values()):
-            estimator.fit(X_train, y_train)
-            current_estimator_test_predictions = estimator.predict(X_test)
+            estimator.fit(x_train, y_train)
+            current_estimator_test_predictions = estimator.predict(x_test)
 
             current_estimator_results = {
                 'accuracy': accuracy_score(y_test, current_estimator_test_predictions),
@@ -188,6 +191,7 @@ class BootstrapModeler:
             axes=self.splitter.frequency_data_columns,
             stats=list(self.splitter.stats.keys()),
 
+            dim_reducing=self.should_reduce_dim,
             dim_reducing_method=self.reducing_method.name,
             # selected_features_ids = self.selected_features_ids
             selected_features_ids=[],
@@ -204,9 +208,8 @@ class BootstrapModeler:
             resampling_number=self.samples_number
             # TODO: replace selected_features_ids field with proper data
         )
-        WriteResultToJSON(results_logger.dict(),
-                          f"{result_label}_bootstrap_{model_name}_{resample_id}",
-                          "SimpleRunsJSONs")
+        write_result_obj_to_json(results_logger.dict(),
+                                 f"{result_label}_bootstrap_{model_name}_{resample_id}", self.separated_log_folder)
 
     def __create_bootstrap_log_file(self, results, result_label='test'):
         models_names = self.named_estimators.keys()
@@ -226,6 +229,7 @@ class BootstrapModeler:
                 axes=self.splitter.frequency_data_columns,
                 stats=list(self.splitter.stats.keys()),
 
+                dim_reducing=self.should_reduce_dim,
                 dim_reducing_method=self.reducing_method.name,
                 # selected_features_ids = self.selected_features_ids
                 selected_features_ids=[],
@@ -242,7 +246,8 @@ class BootstrapModeler:
                 resampling_number=self.samples_number
                 # TODO: replace selected_features_ids field with proper data
             )
-            WriteResultToJSON(results_logger.dict(), f"{result_label}_bootstrap_{model_name}", "BootstrapJSONs")
+            write_result_obj_to_json(results_logger.dict(), f"{result_label}_bootstrap_{model_name}",
+                                     self.bootstrap_log_folder)
 
     def plot_bootstrap_results(self, results, plot_subtitle=None, verbose=True):
         plt.figure(figsize=(11, 6), dpi=80)
@@ -264,7 +269,7 @@ class BootstrapModeler:
 
 
 class Logging(Enum):
-    """logging degree"""
+    """logging type"""
     silent = 1
     bootstrap = 2
     separated = 3
@@ -272,4 +277,3 @@ class Logging(Enum):
     @staticmethod
     def get_keys() -> List[str]:
         return list(map(lambda c: c.name, Logging))
-

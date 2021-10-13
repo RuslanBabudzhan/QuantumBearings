@@ -1,39 +1,10 @@
-import numpy as np
-import pandas as pd
-from scipy import stats, fft
-
-from scipy.stats import kurtosis, skew, variation, iqr
-from pyentrp import entropy as pent
-import antropy as ent
-from hurst import compute_Hc
-
 from typing import Tuple, List
 
-from mljson import Stats
+import numpy as np
+import pandas as pd
+from scipy import fft
 
-
-def crest_factor(x):
-    return np.max(np.abs(x)) / np.sqrt(np.mean(np.square(x)))
-
-
-def get_stat_features(data):
-    H, c, _ = compute_Hc(data, kind='change')
-    activity, complexity = ent.hjorth_params(data)
-    return np.array([variation(data),
-                     kurtosis(data),
-                     skew(data),
-                     (max(data) - min(data)),
-                     iqr(data),
-                     float(pent.sample_entropy(data, 1)),
-                     pent.shannon_entropy(data),
-                     sum(np.abs(data) ** 2),
-                     H,
-                     ent.petrosian_fd(data),
-                     ent.num_zerocross(data),
-                     ent.higuchi_fd(data),
-                     activity,
-                     complexity,
-                     crest_factor(data)])
+from datamodels import Stats
 
 
 class Splitter:
@@ -91,7 +62,7 @@ class Splitter:
 
         for experiment in experiments_indices:
 
-            experiment_prepared_vectors = self.__split_experiment(experiment, targets, dataset)
+            experiment_prepared_vectors = self.__split_single_experiment(experiment, targets, dataset)
             if prepared_dataset is None:
                 prepared_dataset = experiment_prepared_vectors
             else:
@@ -99,7 +70,7 @@ class Splitter:
 
         return prepared_dataset
 
-    def __split_experiment(self, experiment, targets, dataset):
+    def __split_single_experiment(self, experiment, targets, dataset):
         target = targets[targets['bearing_id'] == experiment]['status'].to_numpy()
         experiment_data = dataset[dataset['experiment_id'] == experiment]
 
