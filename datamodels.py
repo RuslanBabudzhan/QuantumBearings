@@ -10,8 +10,8 @@ from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn import feature_selection
-import sklearn.metrics as metrics
 
+import metrics
 import statistics
 
 
@@ -189,10 +189,10 @@ class DimReducers(Enum):
 
 class Metrics(Enum):
     """Enumerated metrics"""
-    accuracy = metrics.accuracy_score
-    precision = metrics.precision_score
-    recall = metrics.recall_score
-    f1 = metrics.f1_score
+    accuracy = metrics.Accuracy
+    precision = metrics.Precision
+    recall = metrics.Recall
+    f1 = metrics.F1
 
     @staticmethod
     def get_keys() -> List[str]:
