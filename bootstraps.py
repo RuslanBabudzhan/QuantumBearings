@@ -12,6 +12,7 @@ from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_sc
 from mljson import write_result_obj_to_json
 from datamodels import SingleRunResults, BootstrapResults, DimReducers
 from splits import Splitter
+# from reduce import Reducer # TODO implement feature reducing
 
 
 class BootstrapModeler:
@@ -22,21 +23,6 @@ class BootstrapModeler:
     RANDOM_STATE = 42
     __RANDOMIZER = np.random.RandomState(RANDOM_STATE)
 
-    @staticmethod
-    def __get_test_train_indices(id_positive: np.ndarray, id_negative: np.ndarray, train_ratio: float):
-        permuted_positive = BootstrapModeler.__RANDOMIZER.permutation(id_positive)
-        permuted_negative = BootstrapModeler.__RANDOMIZER.permutation(id_negative)
-
-        train_positive_idx = permuted_positive[:int(len(id_positive) * train_ratio)]
-        train_negative_idx = permuted_negative[:int(len(id_negative) * train_ratio)]
-
-        test_positive_idx = permuted_positive[int(len(id_positive) * train_ratio):]
-        test_negative_idx = permuted_negative[int(len(id_negative) * train_ratio):]
-
-        train_idx = BootstrapModeler.__RANDOMIZER.permutation(np.concatenate((train_positive_idx, train_negative_idx)))
-        test_idx = BootstrapModeler.__RANDOMIZER.permutation(np.concatenate((test_positive_idx, test_negative_idx)))
-        return train_idx, test_idx
-
     def __init__(self,
                  named_estimators: dict,
                  samples_number: int = 100,
@@ -46,10 +32,10 @@ class BootstrapModeler:
                  should_reduce_dim: bool = False,
                  reducing_method_name: str = 'RFE',
                  leave_positive_features: bool = True,
-                 splitter: Splitter = None):
-        self.deleted_features = None
-        self.feature_importance = None
-        self.whole_experiments_number = 112
+                 splitter: Splitter = None,
+                 # reducer: Reducer = None, # TODO: Add reducer
+                 ):
+
         self.logging_type = 'separated'
         self._should_logging = False
         self.__should_bootstrap_logging = False
@@ -107,7 +93,7 @@ class BootstrapModeler:
             print(f"logging type: {'separate runs' if self.__should_bootstrap_logging else 'bootstrap'}.")
 
         if self._should_logging and not isinstance(self.splitter, Splitter):
-            raise Exception("splits.Splitter() instance must be attached for logging")
+            raise Exception("splits.Splitter() instance must be attached for logging. Use .set_splitter()")
 
         if self._should_logging and True:
             # TODO: Implement reducer validation
@@ -179,6 +165,21 @@ class BootstrapModeler:
         y_test = y[test_groups]
         return x_train, x_test, y_train, y_test
 
+    @staticmethod
+    def __get_test_train_indices(id_positive: np.ndarray, id_negative: np.ndarray, train_ratio: float):
+        permuted_positive = BootstrapModeler.__RANDOMIZER.permutation(id_positive)
+        permuted_negative = BootstrapModeler.__RANDOMIZER.permutation(id_negative)
+
+        train_positive_idx = permuted_positive[:int(len(id_positive) * train_ratio)]
+        train_negative_idx = permuted_negative[:int(len(id_negative) * train_ratio)]
+
+        test_positive_idx = permuted_positive[int(len(id_positive) * train_ratio):]
+        test_negative_idx = permuted_negative[int(len(id_negative) * train_ratio):]
+
+        train_idx = BootstrapModeler.__RANDOMIZER.permutation(np.concatenate((train_positive_idx, train_negative_idx)))
+        test_idx = BootstrapModeler.__RANDOMIZER.permutation(np.concatenate((test_positive_idx, test_negative_idx)))
+        return train_idx, test_idx
+
     def __get_bootstrap_scores(self, x_train, x_test, y_train, y_test):
         estimators_data = {}
 
@@ -224,7 +225,7 @@ class BootstrapModeler:
             f1_score=result['f1'],
 
             resampling_number=self.samples_number
-            # TODO: replace selected_features_ids field with proper data
+            # TODO: Update reducing log info
         )
         write_result_obj_to_json(results_logger.dict(),
                                  f"{result_label}_bootstrap_{model_name}_{resample_id}", self._log_folder)
@@ -262,7 +263,7 @@ class BootstrapModeler:
                 f1_score=model_scores['f1'],
 
                 resampling_number=self.samples_number
-                # TODO: replace selected_features_ids field with proper data
+                # TODO: Update reducing log info
             )
             write_result_obj_to_json(results_logger.dict(), f"{result_label}_bootstrap_{model_name}", self._log_folder)
 
@@ -294,4 +295,3 @@ class Logging(Enum):
     @staticmethod
     def get_keys() -> List[str]:
         return list(map(lambda c: c.name, Logging))
-
