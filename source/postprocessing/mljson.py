@@ -4,7 +4,7 @@ import dataclasses
 
 import pydantic
 
-from datamodels import BaseResultsData
+from source.datamodels.datamodels import BaseResultsData
 
 
 class EnhancedJSONEncoder(json.JSONEncoder):

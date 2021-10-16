@@ -1,7 +1,7 @@
 from typing import List
 from collections import Counter
 
-from datamodels import SingleRunResults, Axes, Stats
+from source.datamodels.datamodels import SingleRunResults, Axes, Stats
 
 
 def convert_single_res_to_dict(result_object: SingleRunResults, hyperparams_need: bool = False) -> dict:

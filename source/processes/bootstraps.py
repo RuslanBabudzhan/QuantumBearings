@@ -10,9 +10,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
 
 from source.postprocessing.mljson import write_result_obj_to_json
-from datamodels import SingleRunResults, BootstrapResults, DimReducers
+from source.datamodels.datamodels import SingleRunResults, BootstrapResults, DimReducers
 from source.preprocessing.splits import Splitter
-# from reduce import Reducer # TODO implement feature reducing
+# from source.preprocessing.reduce import Reducer # TODO implement feature reducing
 
 
 class BootstrapModeler:
