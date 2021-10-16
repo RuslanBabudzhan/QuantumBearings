@@ -11,8 +11,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn import feature_selection
 
-import metrics
-import statistics
+from source.datamodels import metrics, statistics
 
 
 class BaseResultsData(ABC, BaseModel):

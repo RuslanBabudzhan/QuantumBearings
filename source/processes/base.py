@@ -14,11 +14,6 @@ class BaseModeler(ABC):
     __RANDOMIZER = np.random.RandomState(RANDOM_STATE)
 
     @abstractmethod
-    def __init__(self):
-        """constructor"""
-        pass
-
-    @abstractmethod
     def initialize_logging(self, *params):
         """initialize log properties"""
         pass
@@ -28,14 +23,14 @@ class BaseModeler(ABC):
         """method to run experiment"""
 
     @staticmethod
-    def __generate_groups_from_id(bearings_id, group_size):
+    def _generate_groups_from_id(bearings_id, group_size):
         return np.array([np.arange(group * group_size, (group + 1) * group_size) for group in bearings_id]).flatten()
 
     @staticmethod
-    def __split_test_train(X: np.ndarray, y: np.ndarray, train_ID: np.ndarray, test_ID: np.ndarray):
+    def _split_test_train(X: np.ndarray, y: np.ndarray, train_ID: np.ndarray, test_ID: np.ndarray):
         group_size = int(X.shape[0] / (len(train_ID) + len(test_ID)))
-        train_groups = BaseModeler.__generate_groups_from_id(train_ID, group_size)
-        test_groups = BaseModeler.__generate_groups_from_id(test_ID, group_size)
+        train_groups = BaseModeler._generate_groups_from_id(train_ID, group_size)
+        test_groups = BaseModeler._generate_groups_from_id(test_ID, group_size)
 
         x_train = X[train_groups]
         y_train = y[train_groups]
@@ -44,7 +39,7 @@ class BaseModeler(ABC):
         return x_train, x_test, y_train, y_test
 
     @staticmethod
-    def __get_test_train_indices(id_positive: np.ndarray, id_negative: np.ndarray, train_ratio: float):
+    def _get_test_train_indices(id_positive: np.ndarray, id_negative: np.ndarray, train_ratio: float):
         permuted_positive = BaseModeler.__RANDOMIZER.permutation(id_positive)
         permuted_negative = BaseModeler.__RANDOMIZER.permutation(id_negative)
 
@@ -59,13 +54,13 @@ class BaseModeler(ABC):
         return train_idx, test_idx
 
     @abstractmethod
-    def __create_separate_log_file(self, result, model_name, resample_id,
-                                   train_indices, test_indices, result_label='test'):
+    def _create_separate_log_file(self, result, model_name, resample_id,
+                                  train_indices, test_indices, result_label='test'):
         """generates log file for one fit in experiment"""
         pass
 
     @abstractmethod
-    def __create_experiment_log_file(self, results, train_ID, test_ID, result_label='test'):
+    def _create_experiment_log_file(self, results, train_ID, test_ID, result_label='test'):
         """generates log file for whole experiment"""
         pass
 

@@ -1,5 +1,4 @@
-from enum import Enum
-from typing import List, Union, Optional
+from typing import Union, Optional
 
 import numpy as np
 import pandas as pd
@@ -9,10 +8,12 @@ import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
 
-from base import BaseModeler
+from source.processes.base import BaseModeler, Logging
 from source.postprocessing.mljson import write_result_obj_to_json
 from source.datamodels.datamodels import SingleRunResults, BootstrapResults, DimReducers
 from source.preprocessing.splits import Splitter
+
+
 # from source.preprocessing.reduce import Reducer # TODO implement feature reducing
 
 
@@ -69,14 +70,16 @@ class BootstrapModeler(BaseModeler):
         self.__should_bootstrap_logging = False
         self.__should_separate_logging = False
 
-        if self.logging_type == Logging.bootstrap.name:
+        if self.logging_type == Logging.experiment.name:
             self.__should_bootstrap_logging = True
             self.__should_separate_logging = False
-            self._log_folder = log_folder or 'Bootstraps'
+            self._log_folder = log_folder or 'F:/PythonNotebooks/Study/Quantum/Bearings/experiments/Bootstraps' \
+                                             '/ComplexLogs'
         elif self.logging_type == Logging.separated.name:
             self.__should_bootstrap_logging = False
             self.__should_separate_logging = True
-            self._log_folder = log_folder or 'SingleRuns'
+            self._log_folder = log_folder or 'F:/PythonNotebooks/Study/Quantum/Bearings/experiments/Bootstraps' \
+                                             '/SeparatedLogs'
 
         self._should_logging = self.__should_bootstrap_logging or self.__should_separate_logging
 
@@ -118,11 +121,11 @@ class BootstrapModeler(BaseModeler):
         test_indices_log = []
 
         for bootstrap_iteration in range(self.samples_number):
-            train_bearing_id, test_bearing_id = BootstrapModeler.__get_test_train_indices(bearing_negative_ID,
-                                                                                          bearing_positive_ID,
-                                                                                          train_ratio)
-            x_train, x_test, y_train, y_test = self.__split_test_train(x_processed, y,
-                                                                       train_bearing_id, test_bearing_id)
+            train_bearing_id, test_bearing_id = BootstrapModeler._get_test_train_indices(bearing_negative_ID,
+                                                                                         bearing_positive_ID,
+                                                                                         train_ratio)
+            x_train, x_test, y_train, y_test = self._split_test_train(x_processed, y,
+                                                                      train_bearing_id, test_bearing_id)
 
             resampling_results = self.__get_bootstrap_scores(x_train, x_test, y_train, y_test)
 
@@ -133,7 +136,7 @@ class BootstrapModeler(BaseModeler):
             if self.__should_separate_logging:
                 for estimator_name in self.named_estimators.keys():
                     current_estimator_results = resampling_results[estimator_name]
-                    self.__create_separate_log_file(
+                    self._create_separate_log_file(
                         result=current_estimator_results,
                         model_name=estimator_name,
                         resample_id=bootstrap_iteration,
@@ -144,7 +147,7 @@ class BootstrapModeler(BaseModeler):
             bootstrap_results.append(resampling_results)
 
         if self.__should_bootstrap_logging:
-            self.__create_experiment_log_file(bootstrap_results.copy(), train_indices_log, test_indices_log)
+            self._create_experiment_log_file(bootstrap_results.copy(), train_indices_log, test_indices_log)
         return bootstrap_results.copy()
 
     def __get_bootstrap_scores(self, x_train, x_test, y_train, y_test):
@@ -165,8 +168,8 @@ class BootstrapModeler(BaseModeler):
 
         return estimators_data.copy()
 
-    def __create_separate_log_file(self, result, model_name, resample_id,
-                                   train_indices, test_indices, result_label='test'):
+    def _create_separate_log_file(self, result, model_name, resample_id,
+                                  train_indices, test_indices, result_label='test'):
         results_logger = SingleRunResults(
             run_label=result_label,
             model_name=model_name,
@@ -197,7 +200,7 @@ class BootstrapModeler(BaseModeler):
         write_result_obj_to_json(results_logger.dict(),
                                  f"{result_label}_bootstrap_{model_name}_{resample_id}", self._log_folder)
 
-    def __create_experiment_log_file(self, results, train_ID, test_ID, result_label='test'):
+    def _create_experiment_log_file(self, results, train_ID, test_ID, result_label='test'):
         models_names = self.named_estimators.keys()
         resampling_results_names = ['accuracy', 'precision', 'recall', 'f1', 'predictions']
         for model_name in models_names:
@@ -251,14 +254,3 @@ class BootstrapModeler(BaseModeler):
             plt.title('F1 score distribution')
         plt.legend()
         plt.show()
-
-
-class Logging(Enum):
-    """logging type"""
-    silent = 1
-    bootstrap = 2
-    separated = 3
-
-    @staticmethod
-    def get_keys() -> List[str]:
-        return list(map(lambda c: c.name, Logging))

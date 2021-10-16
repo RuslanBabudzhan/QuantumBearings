@@ -1,8 +1,8 @@
+import numpy as np
+from scipy import stats
 from pyentrp import entropy as pent
 import antropy as ent
 from hurst import compute_Hc
-import numpy as np
-from scipy import stats
 
 """
 This file implements statistics for features generation
