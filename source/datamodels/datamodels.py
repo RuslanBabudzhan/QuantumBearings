@@ -15,7 +15,6 @@ import metrics
 import statistics
 
 
-@abstractmethod
 class BaseResultsData(ABC, BaseModel):
     """ Class implements abstract model of data obtained as a result of ML algorithm launch """
     run_label: str  # Label assigned to the result

@@ -9,19 +9,17 @@ import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
 
+from base import BaseModeler
 from source.postprocessing.mljson import write_result_obj_to_json
 from source.datamodels.datamodels import SingleRunResults, BootstrapResults, DimReducers
 from source.preprocessing.splits import Splitter
 # from source.preprocessing.reduce import Reducer # TODO implement feature reducing
 
 
-class BootstrapModeler:
+class BootstrapModeler(BaseModeler):
     """
     Class implements bootstrap resampling of test dataset to build a scores distribution for specific models
     """
-
-    RANDOM_STATE = 42
-    __RANDOMIZER = np.random.RandomState(RANDOM_STATE)
 
     def __init__(self,
                  named_estimators: dict,
@@ -82,12 +80,12 @@ class BootstrapModeler:
 
         self._should_logging = self.__should_bootstrap_logging or self.__should_separate_logging
 
-    def run_bootstrap(self,
-                      X: Union[pd.DataFrame, np.ndarray],
-                      y: Union[pd.Series, np.ndarray],
-                      bearing_positive_ID: np.array = np.arange(100),
-                      bearing_negative_ID: np.array = np.arange(100, 112),
-                      verbose: bool = False) -> list:
+    def run(self,
+            X: Union[pd.DataFrame, np.ndarray],
+            y: Union[pd.Series, np.ndarray],
+            bearing_positive_ID: np.array = np.arange(100),
+            bearing_negative_ID: np.array = np.arange(100, 112),
+            verbose: bool = False) -> list:
         if verbose:
             print(f"logging {'enabled' if self._should_logging else 'disabled'}.")
             print(f"logging type: {'separate runs' if self.__should_bootstrap_logging else 'bootstrap'}.")
@@ -146,39 +144,8 @@ class BootstrapModeler:
             bootstrap_results.append(resampling_results)
 
         if self.__should_bootstrap_logging:
-            self.__create_bootstrap_log_file(bootstrap_results.copy(), train_indices_log, test_indices_log)
+            self.__create_experiment_log_file(bootstrap_results.copy(), train_indices_log, test_indices_log)
         return bootstrap_results.copy()
-
-    @staticmethod
-    def __generate_groups_from_id(bearings_id, group_size):
-        return np.array([np.arange(group * group_size, (group + 1) * group_size) for group in bearings_id]).flatten()
-
-    @staticmethod
-    def __split_test_train(X: np.ndarray, y: np.ndarray, train_ID: np.ndarray, test_ID: np.ndarray):
-        group_size = int(X.shape[0] / (len(train_ID) + len(test_ID)))
-        train_groups = BootstrapModeler.__generate_groups_from_id(train_ID, group_size)
-        test_groups = BootstrapModeler.__generate_groups_from_id(test_ID, group_size)
-
-        x_train = X[train_groups]
-        y_train = y[train_groups]
-        x_test = X[test_groups]
-        y_test = y[test_groups]
-        return x_train, x_test, y_train, y_test
-
-    @staticmethod
-    def __get_test_train_indices(id_positive: np.ndarray, id_negative: np.ndarray, train_ratio: float):
-        permuted_positive = BootstrapModeler.__RANDOMIZER.permutation(id_positive)
-        permuted_negative = BootstrapModeler.__RANDOMIZER.permutation(id_negative)
-
-        train_positive_idx = permuted_positive[:int(len(id_positive) * train_ratio)]
-        train_negative_idx = permuted_negative[:int(len(id_negative) * train_ratio)]
-
-        test_positive_idx = permuted_positive[int(len(id_positive) * train_ratio):]
-        test_negative_idx = permuted_negative[int(len(id_negative) * train_ratio):]
-
-        train_idx = BootstrapModeler.__RANDOMIZER.permutation(np.concatenate((train_positive_idx, train_negative_idx)))
-        test_idx = BootstrapModeler.__RANDOMIZER.permutation(np.concatenate((test_positive_idx, test_negative_idx)))
-        return train_idx, test_idx
 
     def __get_bootstrap_scores(self, x_train, x_test, y_train, y_test):
         estimators_data = {}
@@ -230,7 +197,7 @@ class BootstrapModeler:
         write_result_obj_to_json(results_logger.dict(),
                                  f"{result_label}_bootstrap_{model_name}_{resample_id}", self._log_folder)
 
-    def __create_bootstrap_log_file(self, results, train_ID, test_ID, result_label='test'):
+    def __create_experiment_log_file(self, results, train_ID, test_ID, result_label='test'):
         models_names = self.named_estimators.keys()
         resampling_results_names = ['accuracy', 'precision', 'recall', 'f1', 'predictions']
         for model_name in models_names:
