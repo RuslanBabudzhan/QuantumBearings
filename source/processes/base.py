@@ -54,13 +54,13 @@ class BaseModeler(ABC):
         return train_idx, test_idx
 
     @abstractmethod
-    def _create_separate_log_file(self, result, model_name, resample_id,
-                                  train_indices, test_indices, result_label='test'):
+    def _create_separate_log_file(self,  result_label, result, model_name, resample_id,
+                                  train_indices, test_indices):
         """generates log file for one fit in experiment"""
         pass
 
     @abstractmethod
-    def _create_experiment_log_file(self, results, train_ID, test_ID, result_label='test'):
+    def _create_experiment_log_file(self,  result_label, results, train_ID, test_ID):
         """generates log file for whole experiment"""
         pass
 

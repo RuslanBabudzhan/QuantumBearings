@@ -1,5 +1,6 @@
 import json
-from typing import Union, List, Type
+import re
+from typing import Union, Optional, List, Type
 import dataclasses
 
 import pydantic
@@ -14,24 +15,36 @@ class EnhancedJSONEncoder(json.JSONEncoder):
         return super().default(o)
 
 
-def write_result_obj_to_json(result: dict, filename: str, filepath: str = None):
+def write_result_obj_to_json(result: dict, filename: str, filepath: Optional[str] = None):
+
+    if not bool(re.search("\.json$", filename)):
+        raise ValueError(f'log file name must be in *.json format. Got {filename}')
+    if filepath and not bool(re.search("/$", filepath)):
+        raise ValueError(f'path must end with "/" symbol.')
+
     if filepath:
-        fullname = f"{filepath}/{filename}.json"
+        fullname = f"{filepath}{filename}"
     else:
-        fullname = f"{filename}.json"
+        fullname = f"{filename}"
     with open(fullname, "w") as write_file:
         json.dump(result, write_file, cls=EnhancedJSONEncoder)
 
 
-def get_strings_from_jsons(filenames: Union[str, List[str]], filepath: str = None) -> List[str]:
+def get_strings_from_jsons(filenames: Union[str, List[str]], filepath: Optional[str] = None) -> List[str]:
     if isinstance(filenames, str):
         filenames = [filenames]
+
+    if not bool(re.search("\.json$", filenames[0])):
+        raise ValueError(f'log file name must be in *.json format. Got {filenames[0]}')
+    if filepath and not bool(re.search("/$", filepath)):
+        raise ValueError(f'path must end with "/" symbol.')
+
     json_strings = []
     for filename in filenames:
         if filepath:
-            fullname = f"{filepath}/{filename}.json"
+            fullname = f"{filepath}{filename}"
         else:
-            fullname = f"{filename}.json"
+            fullname = f"{filename}"
         with open(fullname, "r") as read_file:
             json_strings.append(read_file.read())
     return json_strings.copy()

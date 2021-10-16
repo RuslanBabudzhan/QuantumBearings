@@ -40,6 +40,7 @@ class BootstrapModeler(BaseModeler):
         self.__should_bootstrap_logging = False
         self.__should_separate_logging = False
         self._log_folder = None
+        self.__result_label_prefix = None
 
         self.named_estimators = named_estimators
         self.samples_number = samples_number
@@ -57,9 +58,11 @@ class BootstrapModeler(BaseModeler):
             self.reducing_method = DimReducers[reducing_method_name]
 
     def initialize_logging(self,
-                           logging_type='bootstrap',
-                           log_folder: Optional[str] = None
+                           result_label_prefix: str,
+                           logging_type: str = 'bootstrap',
+                           log_folder: Optional[str] = None,
                            ):
+        self.__result_label_prefix = result_label_prefix
 
         if logging_type not in Logging.get_keys():
             raise ValueError(f'bootstrap supports only {Logging.get_keys()} log options. '
@@ -74,12 +77,12 @@ class BootstrapModeler(BaseModeler):
             self.__should_bootstrap_logging = True
             self.__should_separate_logging = False
             self._log_folder = log_folder or 'F:/PythonNotebooks/Study/Quantum/Bearings/experiments/Bootstraps' \
-                                             '/ComplexLogs'
+                                             '/ComplexLogs/'
         elif self.logging_type == Logging.separated.name:
             self.__should_bootstrap_logging = False
             self.__should_separate_logging = True
             self._log_folder = log_folder or 'F:/PythonNotebooks/Study/Quantum/Bearings/experiments/Bootstraps' \
-                                             '/SeparatedLogs'
+                                             '/SeparatedLogs/'
 
         self._should_logging = self.__should_bootstrap_logging or self.__should_separate_logging
 
@@ -88,7 +91,7 @@ class BootstrapModeler(BaseModeler):
             y: Union[pd.Series, np.ndarray],
             bearing_positive_ID: np.array = np.arange(100),
             bearing_negative_ID: np.array = np.arange(100, 112),
-            verbose: bool = False) -> list:
+            verbose: bool = False):
         if verbose:
             print(f"logging {'enabled' if self._should_logging else 'disabled'}.")
             print(f"logging type: {'separate runs' if self.__should_bootstrap_logging else 'bootstrap'}.")
@@ -120,6 +123,8 @@ class BootstrapModeler(BaseModeler):
         train_indices_log = []
         test_indices_log = []
 
+        log_file_name = []
+
         for bootstrap_iteration in range(self.samples_number):
             train_bearing_id, test_bearing_id = BootstrapModeler._get_test_train_indices(bearing_negative_ID,
                                                                                          bearing_positive_ID,
@@ -135,8 +140,11 @@ class BootstrapModeler(BaseModeler):
 
             if self.__should_separate_logging:
                 for estimator_name in self.named_estimators.keys():
+                    result_label = f"{self.__result_label_prefix}_bootstrap_{estimator_name}_{bootstrap_iteration}"
+                    log_file_name.append(f"{result_label}.json")
                     current_estimator_results = resampling_results[estimator_name]
                     self._create_separate_log_file(
+                        result_label=result_label,
                         result=current_estimator_results,
                         model_name=estimator_name,
                         resample_id=bootstrap_iteration,
@@ -147,8 +155,14 @@ class BootstrapModeler(BaseModeler):
             bootstrap_results.append(resampling_results)
 
         if self.__should_bootstrap_logging:
-            self._create_experiment_log_file(bootstrap_results.copy(), train_indices_log, test_indices_log)
-        return bootstrap_results.copy()
+            result_label = f"{self.__result_label_prefix}_bootstrap"
+            log_file_name = f"{result_label}.json"
+            self._create_experiment_log_file(bootstrap_results.copy(), result_label,
+                                             train_indices_log, test_indices_log)
+        if not self._should_logging:
+            return bootstrap_results.copy()
+        else:
+            return bootstrap_results.copy(), log_file_name
 
     def __get_bootstrap_scores(self, x_train, x_test, y_train, y_test):
         estimators_data = {}
@@ -168,8 +182,8 @@ class BootstrapModeler(BaseModeler):
 
         return estimators_data.copy()
 
-    def _create_separate_log_file(self, result, model_name, resample_id,
-                                  train_indices, test_indices, result_label='test'):
+    def _create_separate_log_file(self, result,  result_label, model_name, resample_id,
+                                  train_indices, test_indices):
         results_logger = SingleRunResults(
             run_label=result_label,
             model_name=model_name,
@@ -197,10 +211,9 @@ class BootstrapModeler(BaseModeler):
             resampling_number=self.samples_number
             # TODO: Update reducing log info
         )
-        write_result_obj_to_json(results_logger.dict(),
-                                 f"{result_label}_bootstrap_{model_name}_{resample_id}", self._log_folder)
+        write_result_obj_to_json(results_logger.dict(), f'{result_label}.json', self._log_folder)
 
-    def _create_experiment_log_file(self, results, train_ID, test_ID, result_label='test'):
+    def _create_experiment_log_file(self, results, result_label, train_ID, test_ID, ):
         models_names = self.named_estimators.keys()
         resampling_results_names = ['accuracy', 'precision', 'recall', 'f1', 'predictions']
         for model_name in models_names:
@@ -235,7 +248,7 @@ class BootstrapModeler(BaseModeler):
                 resampling_number=self.samples_number
                 # TODO: Update reducing log info
             )
-            write_result_obj_to_json(results_logger.dict(), f"{result_label}_bootstrap_{model_name}", self._log_folder)
+            write_result_obj_to_json(results_logger.dict(), f"{result_label}.json", self._log_folder)
 
     def plot_bootstrap_results(self, results, plot_subtitle=None, verbose=True):
         plt.figure(figsize=(11, 6), dpi=80)
