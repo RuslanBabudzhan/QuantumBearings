@@ -9,9 +9,9 @@ import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
 
-from mljson import write_result_obj_to_json
+from source.postprocessing.mljson import write_result_obj_to_json
 from datamodels import SingleRunResults, BootstrapResults, DimReducers
-from splits import Splitter
+from source.preprocessing.splits import Splitter
 # from reduce import Reducer # TODO implement feature reducing
 
 
@@ -74,11 +74,11 @@ class BootstrapModeler:
         if self.logging_type == Logging.bootstrap.name:
             self.__should_bootstrap_logging = True
             self.__should_separate_logging = False
-            self._log_folder = log_folder or 'BootstrapJSONs'
+            self._log_folder = log_folder or 'Bootstraps'
         elif self.logging_type == Logging.separated.name:
             self.__should_bootstrap_logging = False
             self.__should_separate_logging = True
-            self._log_folder = log_folder or 'SingleRunsJSONs'
+            self._log_folder = log_folder or 'SingleRuns'
 
         self._should_logging = self.__should_bootstrap_logging or self.__should_separate_logging
 

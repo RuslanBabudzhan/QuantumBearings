@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy import fft
 
-from datamodels import Stats
+from source.datamodels.datamodels import Stats
 
 
 class Splitter:
