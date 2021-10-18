@@ -1,8 +1,10 @@
 from typing import List, Optional
 from collections import Counter
 import re
+import xlsxwriter
 
 import pandas as pd
+import numpy as np
 
 from source.postprocessing.mljson import get_strings_from_jsons, get_result_obj_from_strings
 from source.datamodels.datamodels import SingleRunResults, Axes, Stats
@@ -81,3 +83,68 @@ def generate_csv_from_single_results_log(results_names,
         results_df.to_csv(csv_name)
 
     pass
+
+
+def create_readable_xlsx(xlsx_name, csv_name, xlsx_path: Optional[str] = None, csv_path: Optional[str] = None):
+    themes = {'light blue': {'head_font': '#F3F3F3', 'head_bg': '#142459', 'font': '#3D3D3D', 'bg': '#FBFBFB',
+                             'head_border': '#F3F3F3', 'border': '#6A6A6A'}}
+    theme = themes['light blue']
+    head_format_dict = {'bold': True,
+                        'font_size': 14,
+                        'valign': "down",
+                        'font_color': theme['head_font'],
+                        'bg_color':  theme['head_bg'],
+                        'border': 2}
+
+    line_format_dict = {'font_size': 14,
+                        "align": "right",
+                        'font_color':  theme['font'],
+                        'bg_color': theme['bg'],
+                        'border': 1}
+
+    if not bool(re.search("\.csv$", csv_name)):
+        raise ValueError(f'csv file name must be in *.csv format. Got {csv_name}')
+    if not bool(re.search("\\.xlsx$", xlsx_name)):
+        raise ValueError(f'xlsx file name must be in *.xlsx format. Got {xlsx_name}')
+    if xlsx_path and not bool(re.search("/$", xlsx_name)):
+        raise ValueError(f'xlsx path must end with "/" symbol.')
+    if csv_path and not bool(re.search("/$", csv_path)):
+        raise ValueError(f'csv path must end with "/" symbol.')
+
+    data = pd.read_csv(f"{csv_path if csv_path else ''}{csv_name}", delimiter=',')
+    data.astype('object')
+    # print(data['Axis: a1_x'])
+    data = data.rename(columns={'Unnamed: 0': 'Run index'})
+    # print(data.columns)
+
+    workbook = xlsxwriter.Workbook(f"{xlsx_path if xlsx_path else ''}{xlsx_name}")
+    worksheet = workbook.add_worksheet()
+
+    bool_map = {True: "Yes", False: "No", None: None}
+    float_map = lambda x: str(np.round(x, 3)).replace('.', ',') \
+        if isinstance(x, (float, np.float, np.float64)) and not np.isnan(x) else ""
+
+    for col_id, column in enumerate(data):
+        column_format = workbook.add_format(line_format_dict)
+        column_format.set_border_color(theme['border'])
+        if any(data[column].map(lambda x: isinstance(x, (float, np.float, np.float64)) and not np.isnan(x))):
+            prepared_column = data[column].map(float_map).fillna("")
+        elif any(data[column].map(lambda x: isinstance(x, (bool, np.bool, np.bool_)))):
+            prepared_column = data[column].map(bool_map).fillna("")
+        else:
+            prepared_column = data[column].fillna("")
+
+        col_width = 1.5 * max([len(column), max(prepared_column.map(lambda x: len(str(x))))])
+        worksheet.set_column(col_id, col_id, col_width, column_format)
+
+        worksheet.write_column(1, col_id, prepared_column)
+
+    head_format = workbook.add_format(head_format_dict)
+    head_format.set_border_color(theme['head_border'])
+    worksheet.set_row(0, 22, head_format)
+    worksheet.write_row(0, 0, data.columns)
+
+    workbook.close()
+
+
+create_readable_xlsx("res.xlsx", "res.csv")
