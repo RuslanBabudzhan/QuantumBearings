@@ -145,6 +145,3 @@ def create_readable_xlsx(xlsx_name, csv_name, xlsx_path: Optional[str] = None, c
     worksheet.write_row(0, 0, data.columns)
 
     workbook.close()
-
-
-create_readable_xlsx("res.xlsx", "res.csv")
