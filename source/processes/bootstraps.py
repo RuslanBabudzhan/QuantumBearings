@@ -81,6 +81,11 @@ class BootstrapModeler(BaseModeler):
             self.__should_separate_logging = True
             self._log_folder = log_folder or 'F:/PythonNotebooks/Study/Quantum/Bearings/experiments/Bootstraps' \
                                              '/SeparatedLogs/'
+        elif self.logging_type == Logging.all.name:
+            self.__should_bootstrap_logging = True
+            self.__should_separate_logging = True
+            self._log_folder = log_folder or 'F:/PythonNotebooks/Study/Quantum/Bearings/experiments/Bootstraps' \
+                                             '/MixedLogs/'
 
         self._should_logging = self.__should_bootstrap_logging or self.__should_separate_logging
 

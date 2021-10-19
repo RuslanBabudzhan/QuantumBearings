@@ -70,6 +70,7 @@ class Logging(Enum):
     silent = 1
     experiment = 2
     separated = 3
+    all = 4
 
     @staticmethod
     def get_keys() -> List[str]:
