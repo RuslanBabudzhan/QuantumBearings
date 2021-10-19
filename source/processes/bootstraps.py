@@ -30,7 +30,6 @@ class BootstrapModeler(BaseModeler):
                  should_scale: bool = True,
                  should_reduce_dim: bool = False,
                  reducing_method_name: str = 'RFE',
-                 leave_positive_features: bool = True,
                  splitter: Splitter = None,
                  # reducer: Reducer = None, # TODO: Add reducer
                  ):
@@ -48,7 +47,6 @@ class BootstrapModeler(BaseModeler):
         self.should_scale = should_scale
         self.should_reduce_dim = should_reduce_dim
         self.feature_dropping_ratio = feature_dropping_ratio
-        self.leave_positive_features = leave_positive_features
         self.splitter = splitter
 
         if reducing_method_name not in DimReducers.get_keys():
@@ -155,9 +153,12 @@ class BootstrapModeler(BaseModeler):
             bootstrap_results.append(resampling_results)
 
         if self.__should_bootstrap_logging:
-            result_label = f"{self.__result_label_prefix}_bootstrap"
-            log_file_name = f"{result_label}.json"
-            self._create_experiment_log_file(bootstrap_results.copy(), result_label,
+            result_labels_list = [f"{self.__result_label_prefix}_bootstrap_{model_name}" for model_name
+                                  in self.named_estimators.keys()]
+            result_labels = dict(zip(self.named_estimators.keys(), result_labels_list))
+
+            log_file_name = [f"{result_label}.json" for result_label in result_labels_list]
+            self._create_experiment_log_file(bootstrap_results.copy(), result_labels,
                                              train_indices_log, test_indices_log)
         if not self._should_logging:
             return bootstrap_results.copy()
@@ -213,10 +214,11 @@ class BootstrapModeler(BaseModeler):
         )
         write_result_obj_to_json(results_logger.dict(), f'{result_label}.json', self._log_folder)
 
-    def _create_experiment_log_file(self, results, result_label, train_ID, test_ID, ):
+    def _create_experiment_log_file(self, results, result_labels, train_ID, test_ID, ):
         models_names = self.named_estimators.keys()
         resampling_results_names = ['accuracy', 'precision', 'recall', 'f1', 'predictions']
         for model_name in models_names:
+            result_label = result_labels[model_name]
             model_scores = {}
             for result_name in resampling_results_names:
                 model_score = [result[model_name][result_name] for result in results]
