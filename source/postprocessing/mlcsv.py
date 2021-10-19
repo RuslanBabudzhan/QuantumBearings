@@ -5,9 +5,10 @@ import xlsxwriter
 
 import pandas as pd
 import numpy as np
+from scipy import stats
 
 from source.postprocessing.mljson import get_strings_from_jsons, get_result_obj_from_strings
-from source.datamodels.datamodels import SingleRunResults, Axes, Stats
+from source.datamodels.datamodels import SingleRunResults, BootstrapResults, Axes, Stats
 
 
 def convert_single_res_to_dict(result_object: SingleRunResults, hyperparams_need: bool = False) -> dict:
@@ -25,6 +26,39 @@ def convert_single_res_to_dict(result_object: SingleRunResults, hyperparams_need
 
     converted = dict()
     for field_name, field in zip(single_run_simple_fields.keys(), single_run_simple_fields.values()):
+        converted[field_name] = field
+
+    for axis in Axes.get_keys():
+        converted["Axis: " + axis] = True if axis in result_object.axes else False
+
+    for stat in Stats.get_keys():
+        converted["Statistic: " + stat] = True if stat in result_object.stats else False
+
+    if hyperparams_need:
+        for param_name, param in zip(result_object.hyperparameters.keys(), result_object.hyperparameters.values()):
+            converted["HyperParameter: " + param_name] = param
+
+    return converted
+
+
+def convert_bootstrap_res_to_dict(result_object: BootstrapResults, hyperparams_need: bool = False) -> dict:
+    """Converts single run result to dict, that can be writen as a experiment result table row"""
+    simple_fields = {
+        "run label": result_object.run_label,
+        "ML model": result_object.model_name,
+        "Signals data used": result_object.use_signal,
+        "Specter data used": result_object.use_specter,
+        "samplings number": result_object.resampling_number,
+        "F1 mean": np.mean(result_object.f1_score),
+        "F1 median": np.median(result_object.f1_score),
+        "F1 mode": stats.mode(np.array(result_object.f1_score))[0][0],
+        "F1 std": np.std(result_object.f1_score),
+        "F1 skewness": stats.skew(np.array(result_object.f1_score)),
+        "F1 Kurtosis": stats.kurtosis(np.array(result_object.f1_score))
+    }
+
+    converted = dict()
+    for field_name, field in zip(simple_fields.keys(), simple_fields.values()):
         converted[field_name] = field
 
     for axis in Axes.get_keys():
@@ -68,7 +102,6 @@ def generate_csv_from_single_results_log(results_names,
         raise ValueError(f'csv file name must be in *.csv format. Got {csv_name}')
     if csv_path and not bool(re.search("/$", csv_path)):
         raise ValueError(f'path must end with "/" symbol.')
-    print(results_path)
     results_strings = get_strings_from_jsons(results_names, results_path)
     results_objects = get_result_obj_from_strings(results_strings, SingleRunResults)
     results_dicts = []
@@ -77,12 +110,76 @@ def generate_csv_from_single_results_log(results_names,
     joined_dict = full_dicts_join(results_dicts)
 
     results_df = pd.DataFrame(joined_dict)
-    if csv_path:
-        results_df.to_csv(f"{csv_path}{csv_name}")
-    else:
-        results_df.to_csv(csv_name)
+    results_df.to_csv(f"{csv_path if csv_path else ''}{csv_name}", index=False)
 
-    pass
+
+def generate_csv_from_bootstrap_results_log(results_names,
+                                            csv_name,
+                                            results_path: Optional[str] = None,
+                                            csv_path: Optional[str] = None):
+    if not bool(re.search("\.csv$", csv_name)):
+        raise ValueError(f'csv file name must be in *.csv format. Got {csv_name}')
+    if csv_path and not bool(re.search("/$", csv_path)):
+        raise ValueError(f'path must end with "/" symbol.')
+    results_strings = get_strings_from_jsons(results_names, results_path)
+    results_objects = get_result_obj_from_strings(results_strings, BootstrapResults)
+    results_dicts = []
+    for res_obj in results_objects:
+        results_dicts.append(convert_bootstrap_res_to_dict(res_obj, hyperparams_need=False))
+    joined_dict = full_dicts_join(results_dicts)
+
+    results_df = pd.DataFrame(joined_dict)
+    results_df.to_csv(f"{csv_path if csv_path else ''}{csv_name}", index=False)
+
+
+def append_single_res_to_csv(results_names,
+                             csv_name,
+                             results_path: Optional[str] = None,
+                             csv_path: Optional[str] = None,
+                             copy: bool = False):
+    if not bool(re.search("\.csv$", csv_name)):
+        raise ValueError(f'csv file name must be in *.csv format. Got {csv_name}')
+    if csv_path and not bool(re.search("/$", csv_path)):
+        raise ValueError(f'path must end with "/" symbol.')
+    results_strings = get_strings_from_jsons(results_names, results_path)
+    results_objects = get_result_obj_from_strings(results_strings, SingleRunResults)
+    results_dicts = []
+    for res_obj in results_objects:
+        results_dicts.append(convert_single_res_to_dict(res_obj, hyperparams_need=False))
+    joined_dict = full_dicts_join(results_dicts)
+
+    old_results_df = pd.read_csv(f"{csv_path if csv_path else ''}{csv_name}")
+    new_results_df = pd.DataFrame(joined_dict)
+    results_df = pd.concat([old_results_df, new_results_df], ignore_index=True)
+    if copy:
+        results_df.to_csv(f"{csv_path if csv_path else ''}copy_{csv_name}", index=False)
+    else:
+        results_df.to_csv(f"{csv_path if csv_path else ''}{csv_name}", index=False)
+
+
+def append_bootstrap_res_to_csv(results_names,
+                                csv_name,
+                                results_path: Optional[str] = None,
+                                csv_path: Optional[str] = None,
+                                copy: bool = False):
+    if not bool(re.search("\.csv$", csv_name)):
+        raise ValueError(f'csv file name must be in *.csv format. Got {csv_name}')
+    if csv_path and not bool(re.search("/$", csv_path)):
+        raise ValueError(f'path must end with "/" symbol.')
+    results_strings = get_strings_from_jsons(results_names, results_path)
+    results_objects = get_result_obj_from_strings(results_strings, BootstrapResults)
+    results_dicts = []
+    for res_obj in results_objects:
+        results_dicts.append(convert_bootstrap_res_to_dict(res_obj, hyperparams_need=False))
+    joined_dict = full_dicts_join(results_dicts)
+
+    old_results_df = pd.read_csv(f"{csv_path if csv_path else ''}{csv_name}")
+    new_results_df = pd.DataFrame(joined_dict)
+    results_df = pd.concat([old_results_df, new_results_df], ignore_index=True)
+    if copy:
+        results_df.to_csv(f"{csv_path if csv_path else ''}copy_{csv_name}", index=False)
+    else:
+        results_df.to_csv(f"{csv_path if csv_path else ''}{csv_name}", index=False)
 
 
 def create_readable_xlsx(xlsx_name, csv_name, xlsx_path: Optional[str] = None, csv_path: Optional[str] = None):
@@ -93,29 +190,27 @@ def create_readable_xlsx(xlsx_name, csv_name, xlsx_path: Optional[str] = None, c
                         'font_size': 14,
                         'valign': "down",
                         'font_color': theme['head_font'],
-                        'bg_color':  theme['head_bg'],
+                        'bg_color': theme['head_bg'],
                         'border': 2}
 
     line_format_dict = {'font_size': 14,
                         "align": "right",
-                        'font_color':  theme['font'],
+                        'font_color': theme['font'],
                         'bg_color': theme['bg'],
                         'border': 1}
 
     if not bool(re.search("\.csv$", csv_name)):
         raise ValueError(f'csv file name must be in *.csv format. Got {csv_name}')
-    if not bool(re.search("\\.xlsx$", xlsx_name)):
+    if not bool(re.search("\.xlsx$", xlsx_name)):
         raise ValueError(f'xlsx file name must be in *.xlsx format. Got {xlsx_name}')
-    if xlsx_path and not bool(re.search("/$", xlsx_name)):
-        raise ValueError(f'xlsx path must end with "/" symbol.')
+    if xlsx_path and not bool(re.search("/$", xlsx_path)):
+        raise ValueError(f'xlsx path must end with "/" symbol. Got {xlsx_path}')
     if csv_path and not bool(re.search("/$", csv_path)):
-        raise ValueError(f'csv path must end with "/" symbol.')
+        raise ValueError(f'csv path must end with "/" symbol. Got {csv_path}')
 
     data = pd.read_csv(f"{csv_path if csv_path else ''}{csv_name}", delimiter=',')
+    data.insert(loc=0, column='experiment index', value=np.arange(len(data)))
     data.astype('object')
-    # print(data['Axis: a1_x'])
-    data = data.rename(columns={'Unnamed: 0': 'Run index'})
-    # print(data.columns)
 
     workbook = xlsxwriter.Workbook(f"{xlsx_path if xlsx_path else ''}{xlsx_name}")
     worksheet = workbook.add_worksheet()
@@ -136,7 +231,6 @@ def create_readable_xlsx(xlsx_name, csv_name, xlsx_path: Optional[str] = None, c
 
         col_width = 1.5 * max([len(column), max(prepared_column.map(lambda x: len(str(x))))])
         worksheet.set_column(col_id, col_id, col_width, column_format)
-
         worksheet.write_column(1, col_id, prepared_column)
 
     head_format = workbook.add_format(head_format_dict)
