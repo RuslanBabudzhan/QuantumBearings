@@ -27,8 +27,8 @@ class BaseModeler(ABC):
     def run(self,
             X: Union[pd.DataFrame, np.ndarray],
             y: Union[pd.Series, np.ndarray],
-            bearing_positive_ID: np.array = np.arange(100),
-            bearing_negative_ID: np.array = np.arange(100, 112),
+            bearing_positive_ID: Optional[np.array] = None,
+            bearing_negative_ID: Optional[np.array] = None,
             verbose: bool = False):
         """method to run experiment"""
 

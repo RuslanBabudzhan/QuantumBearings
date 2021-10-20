@@ -92,9 +92,13 @@ class BootstrapModeler(BaseModeler):
     def run(self,
             X: Union[pd.DataFrame, np.ndarray],
             y: Union[pd.Series, np.ndarray],
-            bearing_positive_ID: np.array = np.arange(100),
-            bearing_negative_ID: np.array = np.arange(100, 112),
+            bearing_positive_ID: Optional[np.array] = None,
+            bearing_negative_ID: Optional[np.array] = None,
             verbose: bool = False):
+        if bearing_positive_ID is None:
+            bearing_positive_ID = np.arange(100)
+        if bearing_negative_ID is None:
+            bearing_negative_ID = np.arange(100, 112)
         if verbose:  # TODO: add full logging message
             print(f"logging {'enabled' if self._should_logging else 'disabled'}.")
             print(f"logging type: {'separate runs' if self.__should_bootstrap_logging else 'bootstrap'}.")

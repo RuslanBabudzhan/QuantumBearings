@@ -1,5 +1,5 @@
-from typing import Tuple, List
-from abc import ABC, abstractmethod
+from typing import Tuple, List, Optional
+from abc import ABC, abstractmethod, abstractproperty
 
 import numpy as np
 import pandas as pd
@@ -47,15 +47,14 @@ class BaseParser(ABC):
     def split_dataset(self,
                       dataset: pd.DataFrame,
                       targets: pd.DataFrame,
-                      stable_area: List[Tuple[int, int]],
-                      splits_number: int,
+                      stable_area: Optional[List[Tuple[int, int]]] = None,
+                      splits_number: int = 10,
                       frequency_data_columns: List[str] = None) -> np.ndarray:
         """
         Split dataset by chunks and return dataset with statistics of the chunks
         """
         pass
 
-    @abstractmethod
     def _split_single_experiment(self, experiment, targets, dataset):
         """
         split by chunks one experiment records from whole experiments dataset
@@ -64,7 +63,31 @@ class BaseParser(ABC):
         :param dataset: whole dataset to extract experiment data
         :return: statistics array with shape (splits, statistics) for of one splited experiment
         """
-        pass
+        # def _split_single_experiment(self, experiment, targets, dataset):
+        target = targets[targets['bearing_id'] == experiment]['status'].to_numpy()
+        experiment_data = dataset[dataset['experiment_id'] == experiment]
+        batch_time_range = (self.stable_area[0][1] - self.stable_area[0][0]) / self.splits_number
+        experiment_prepared_vectors = None
+        for split in range(self.splits_number):
+
+            batch = experiment_data[self.stable_area[0][0] + split * batch_time_range < experiment_data['timestamp']]
+            batch = batch[batch['timestamp'] < self.stable_area[0][0] + (split + 1) * batch_time_range]
+
+            cleaned_vector = np.zeros(shape=(1, 1))
+            cleaned_vector[0, 0] = target
+
+            for frequency_column in self.frequency_data_columns:
+                frequency_data = batch[frequency_column]
+                prepared_data = self._get_data_statistics(frequency_data.to_numpy())
+                cleaned_vector = np.hstack((cleaned_vector, prepared_data))
+
+            if experiment_prepared_vectors is None:
+                experiment_prepared_vectors = cleaned_vector
+
+            else:
+                experiment_prepared_vectors = np.vstack((experiment_prepared_vectors, cleaned_vector))
+
+        return experiment_prepared_vectors
 
     def _get_data_statistics(self, raw_data):
         prepared = None
