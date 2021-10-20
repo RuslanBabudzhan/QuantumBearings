@@ -9,106 +9,106 @@ This file implements statistics for features generation
 """
 
 
-class Mean:
+class Mean:  # statistic №1
     @staticmethod
     def count_stat(data):
         return np.mean(data)
 
 
-class STD:
+class STD:  # statistic №2
     @staticmethod
     def count_stat(data):
         return np.std(data)
 
 
-class Kurtosis:
+class Kurtosis:  # statistic №3
     @staticmethod
     def count_stat(data):
         return stats.kurtosis(data)
 
 
-class Skew:
+class Skew:  # statistic №4
     @staticmethod
     def count_stat(data):
         return stats.skew(data)
 
 
-class Variation:
+class Variation:  # statistic №5
     @staticmethod
     def count_stat(data):
         return stats.variation(data)
 
 
-class StatRange:
+class StatRange:  # statistic №6
     @staticmethod
     def count_stat(data):
         return max(data) - min(data)
 
 
-class IQR:
+class IQR:  # statistic №7
     @staticmethod
     def count_stat(data):
         return stats.iqr(data)
 
 
-class SampleEntropy:
+class SampleEntropy:  # statistic №8
     @staticmethod
     def count_stat(data):
         return float(pent.sample_entropy(data, 1))
 
 
-class ShannonEntropy:
+class ShannonEntropy:  # statistic №9
     @staticmethod
     def count_stat(data):
         return pent.shannon_entropy(data)
 
 
-class Energy:
+class Energy:  # statistic №10
     @staticmethod
     def count_stat(data):
         return sum(np.abs(data) ** 2)
 
 
-class Hurst:
+class Hurst:  # statistic №11
     @staticmethod
     def count_stat(data):
         h, _, _ = compute_Hc(data, kind='change')
         return h
 
 
-class PetrosianFD:
+class PetrosianFD:  # statistic №12
     @staticmethod
     def count_stat(data):
         return ent.petrosian_fd(data)
 
 
-class ZeroCrossing:
+class ZeroCrossing:  # statistic №13
     @staticmethod
     def count_stat(data):
         return ent.num_zerocross(data)
 
 
-class HiguchiFD:
+class HiguchiFD:  # statistic №14
     @staticmethod
     def count_stat(data):
         return ent.higuchi_fd(data)
 
 
-class Activity:
+class Activity:  # statistic №15
     @staticmethod
     def count_stat(data):
         activity, _ = ent.hjorth_params(data)
         return activity
 
 
-class Complexity:
+class Complexity:  # statistic №16
     @staticmethod
     def count_stat(data):
         _, complexity = ent.hjorth_params(data)
         return complexity
 
 
-class CrestFactor:
+class CrestFactor:  # statistic №17
     @staticmethod
     def count_stat(data):
         return np.max(np.abs(data)) / np.sqrt(np.mean(np.square(data)))
