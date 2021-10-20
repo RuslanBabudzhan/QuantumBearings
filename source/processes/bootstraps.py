@@ -95,7 +95,7 @@ class BootstrapModeler(BaseModeler):
             bearing_positive_ID: np.array = np.arange(100),
             bearing_negative_ID: np.array = np.arange(100, 112),
             verbose: bool = False):
-        if verbose:
+        if verbose:  # TODO: add full logging message
             print(f"logging {'enabled' if self._should_logging else 'disabled'}.")
             print(f"logging type: {'separate runs' if self.__should_bootstrap_logging else 'bootstrap'}.")
 
