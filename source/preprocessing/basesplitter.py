@@ -100,7 +100,7 @@ class BaseSplitter(ABC):
         assert self.use_5_stats or self.use_15_stats, "either use_5_stats or use_15_stats must be true"
 
         if self.use_z_stat:
-            data = StandardScaler().fit_transform(data)
+            data = (data - np.mean(data))/np.std(data)
 
         if self.use_signal and not self.use_specter:
             data = [data]

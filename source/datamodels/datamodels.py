@@ -14,7 +14,7 @@ from sklearn import feature_selection
 from source.datamodels import metrics, statistics
 
 
-class BaseResultsData(ABC, BaseModel):
+class BaseResultsData(ABC, BaseModel):  # TODO: add z-stat
     """ Class implements abstract model of data obtained as a result of ML algorithm launch """
     run_label: str  # Label assigned to the result
     model_name: str  # Name of the model (GBM, RF, etc.). Use Model.<model>.n
