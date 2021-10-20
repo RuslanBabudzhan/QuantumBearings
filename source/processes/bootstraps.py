@@ -57,7 +57,7 @@ class BootstrapModeler(BaseModeler):
 
     def initialize_logging(self,
                            result_label_prefix: str,
-                           logging_type: str = 'bootstrap',
+                           logging_type: str = 'experiment',
                            log_folder: Optional[str] = None,
                            ):
         self.__result_label_prefix = result_label_prefix

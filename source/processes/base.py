@@ -1,8 +1,9 @@
 from enum import Enum
-from typing import List
+from typing import List, Union, Optional
 from abc import ABC, abstractmethod
 
 import numpy as np
+import pandas as pd
 
 
 class BaseModeler(ABC):
@@ -14,12 +15,21 @@ class BaseModeler(ABC):
     __RANDOMIZER = np.random.RandomState(RANDOM_STATE)
 
     @abstractmethod
-    def initialize_logging(self, *params):
+    def initialize_logging(self,
+                           result_label_prefix: str,
+                           logging_type: str = 'experiment',
+                           log_folder: Optional[str] = None,
+                           ):
         """initialize log properties"""
         pass
 
     @abstractmethod
-    def run(self, *params):
+    def run(self,
+            X: Union[pd.DataFrame, np.ndarray],
+            y: Union[pd.Series, np.ndarray],
+            bearing_positive_ID: np.array = np.arange(100),
+            bearing_negative_ID: np.array = np.arange(100, 112),
+            verbose: bool = False):
         """method to run experiment"""
 
     @staticmethod
