@@ -5,10 +5,10 @@ import pandas as pd
 from scipy import fft
 
 from source.datamodels.datamodels import Stats
-from source.preprocessing.baseparser import BaseParser
+from source.preprocessing.basesplitter import BaseSplitter
 
 
-class Splitter(BaseParser):
+class Splitter(BaseSplitter):
     DATA_REQUIRED_COLUMNS = ['experiment_id', 'timestamp']
     TARGET_REQUIRED_COLUMNS = ['bearing_id', 'status']
 

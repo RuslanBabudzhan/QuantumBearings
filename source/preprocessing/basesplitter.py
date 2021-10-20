@@ -1,19 +1,21 @@
 from typing import Tuple, List, Optional
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 
 import numpy as np
 import pandas as pd
 from scipy import fft
+from sklearn.preprocessing import StandardScaler
 
 from source.datamodels.datamodels import Stats
 
 
-class BaseParser(ABC):
+class BaseSplitter(ABC):
     def __init__(self,
                  use_signal: bool = True,
                  use_specter: bool = False,
                  use_5_stats: bool = True,
-                 use_15_stats: bool = False):
+                 use_15_stats: bool = False,
+                 use_z_stat: bool = False):
         """
         Class implements chunk splittings of bearings_signals.csv dataset with subsequent processing of chunks
         """
@@ -21,6 +23,7 @@ class BaseParser(ABC):
         self.use_specter = use_specter
         self.use_5_stats = use_5_stats
         self.use_15_stats = use_15_stats
+        self.use_z_stat = use_z_stat
         self.stable_area = None
         self.splits_number = None
         self.frequency_data_columns = None
@@ -91,16 +94,20 @@ class BaseParser(ABC):
 
     def _get_data_statistics(self, raw_data):
         prepared = None
+        data = raw_data
 
         assert self.use_signal or self.use_specter, "either use_signal or use_specter must be true"
         assert self.use_5_stats or self.use_15_stats, "either use_5_stats or use_15_stats must be true"
 
+        if self.use_z_stat:
+            data = StandardScaler().fit_transform(data)
+
         if self.use_signal and not self.use_specter:
-            data = [raw_data]
+            data = [data]
         elif self.use_specter and not self.use_signal:
-            data = [np.abs(fft.fft(raw_data))]
+            data = [np.abs(fft.fft(data))]
         else:
-            data = [raw_data, np.abs(fft.fft(raw_data))]
+            data = [data, np.abs(fft.fft(data))]
 
         for data_element in data:
             statistic_values = []
