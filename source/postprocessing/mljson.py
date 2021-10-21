@@ -1,3 +1,14 @@
+"""
+Module implements serialization and deserialization of Results objects (from source.datamodels.datamodels)
+
+Use write_result_obj_to_json to serialize Result object
+
+Use get_strings_from_jsons to create a list of strings from list of *.json files
+
+Use get_result_obj_from_strings to get Result objects from strings
+"""
+
+
 import json
 import re
 from typing import Union, Optional, List, Type
@@ -16,7 +27,7 @@ class EnhancedJSONEncoder(json.JSONEncoder):
 
 
 def write_result_obj_to_json(result: dict, filename: str, filepath: Optional[str] = None):
-
+    """ implements Results object serialization """
     if not bool(re.search("\.json$", filename)):
         raise ValueError(f'log file name must be in *.json format. Got {filename}')
     if filepath and not bool(re.search("/$", filepath)):

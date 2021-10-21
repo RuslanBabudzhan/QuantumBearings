@@ -201,6 +201,7 @@ class BootstrapModeler(BaseModeler):
 
             use_signal=self.splitter.use_signal,
             use_specter=self.splitter.use_specter,
+            use_z_stat=self.splitter.use_z_stat,
             axes=self.splitter.frequency_data_columns,
             stats=list(self.splitter.stats.keys()),
 
@@ -239,6 +240,7 @@ class BootstrapModeler(BaseModeler):
 
                 use_signal=self.splitter.use_signal,
                 use_specter=self.splitter.use_specter,
+                use_z_stat=self.splitter.use_z_stat,
                 axes=self.splitter.frequency_data_columns,
                 stats=list(self.splitter.stats.keys()),
 

@@ -1,3 +1,15 @@
+"""
+module implements work with csv and xlsx files for creating ML experiment tracking tables
+
+Use generate_csv_from_log to convert *.json log files to new *.csv table
+
+Use append_res_to_csv to append data from *.json log files to existing *.csv table
+
+Use create_readable_xlsx to create human-readable *.xlsx table from *.csv table
+"""
+
+# TODO: rewrite converters based on standardized dataclass field objects
+
 from typing import List, Optional
 from collections import Counter
 import re
@@ -8,7 +20,8 @@ import numpy as np
 from scipy import stats
 
 from source.postprocessing.mljson import get_strings_from_jsons, get_result_obj_from_strings
-from source.datamodels.datamodels import SingleRunResults, BootstrapResults, Axes, Stats
+from source.datamodels.datamodels import SingleRunResults, BootstrapResults, SingleDatasetsComparisonResults
+from source.datamodels.datamodels import Axes, Stats
 
 
 def convert_single_res_to_dict(result_object: SingleRunResults, hyperparams_need: bool = False) -> dict:
@@ -22,6 +35,41 @@ def convert_single_res_to_dict(result_object: SingleRunResults, hyperparams_need
         "Precision": result_object.precision_score,
         "Recall": result_object.recall_score,
         "F1": result_object.f1_score
+    }
+
+    converted = dict()
+    for field_name, field in zip(single_run_simple_fields.keys(), single_run_simple_fields.values()):
+        converted[field_name] = field
+
+    for axis in Axes.get_keys():
+        converted["Axis: " + axis] = True if axis in result_object.axes else False
+
+    for stat in Stats.get_keys():
+        converted["Statistic: " + stat] = True if stat in result_object.stats else False
+
+    if hyperparams_need:
+        for param_name, param in zip(result_object.hyperparameters.keys(), result_object.hyperparameters.values()):
+            converted["HyperParameter: " + param_name] = param
+
+    return converted
+
+
+def convert_datasets_comparison_res_to_dict(result_object: SingleDatasetsComparisonResults,
+                                            hyperparams_need: bool = False) -> dict:
+    """Converts single run result to dict, that can be writen as a experiment result table row"""
+    single_run_simple_fields = {
+        "run label": result_object.run_label,
+        "ML model": result_object.model_name,
+        "Train set": result_object.train_dataset_name,
+        "Test set": result_object.test_dataset_name,
+        "Signals data used": result_object.use_signal,
+        "Specter data used": result_object.use_specter,
+        "Accuracy": result_object.accuracy_score,
+        "Precision": result_object.precision_score,
+        "Recall": result_object.recall_score,
+        "F1": result_object.f1_score,
+        "TPR": result_object.TPR_score,
+        "TNR": result_object.TNR_score,
     }
 
     converted = dict()
@@ -94,83 +142,56 @@ def full_dicts_join(dicts: List[dict]) -> dict:
     return joined
 
 
-def generate_csv_from_single_results_log(results_names,
-                                         csv_name,
-                                         results_path: Optional[str] = None,
-                                         csv_path: Optional[str] = None):
+def generate_csv_from_log(results_names,
+                          csv_name,
+                          results_type,
+                          results_path: Optional[str] = None,
+                          csv_path: Optional[str] = None,
+                          hyperparams_need=False):
     if not bool(re.search("\.csv$", csv_name)):
         raise ValueError(f'csv file name must be in *.csv format. Got {csv_name}')
     if csv_path and not bool(re.search("/$", csv_path)):
         raise ValueError(f'path must end with "/" symbol.')
     results_strings = get_strings_from_jsons(results_names, results_path)
-    results_objects = get_result_obj_from_strings(results_strings, SingleRunResults)
+    results_objects = get_result_obj_from_strings(results_strings, results_type)
     results_dicts = []
-    for res_obj in results_objects:
-        results_dicts.append(convert_single_res_to_dict(res_obj, hyperparams_need=False))
+    if results_type is SingleRunResults:
+        for res_obj in results_objects:
+            results_dicts.append(convert_single_res_to_dict(res_obj, hyperparams_need=hyperparams_need))
+    elif results_type is BootstrapResults:
+        for res_obj in results_objects:
+            results_dicts.append(convert_bootstrap_res_to_dict(res_obj, hyperparams_need=hyperparams_need))
+    elif results_type is SingleDatasetsComparisonResults:
+        for res_obj in results_objects:
+            results_dicts.append(convert_datasets_comparison_res_to_dict(res_obj, hyperparams_need=hyperparams_need))
     joined_dict = full_dicts_join(results_dicts)
 
     results_df = pd.DataFrame(joined_dict)
     results_df.to_csv(f"{csv_path if csv_path else ''}{csv_name}", index=False)
 
 
-def generate_csv_from_bootstrap_results_log(results_names,
-                                            csv_name,
-                                            results_path: Optional[str] = None,
-                                            csv_path: Optional[str] = None):
+def append_res_to_csv(results_names,
+                      csv_name,
+                      results_type,
+                      results_path: Optional[str] = None,
+                      csv_path: Optional[str] = None,
+                      copy: bool = False):
     if not bool(re.search("\.csv$", csv_name)):
         raise ValueError(f'csv file name must be in *.csv format. Got {csv_name}')
     if csv_path and not bool(re.search("/$", csv_path)):
         raise ValueError(f'path must end with "/" symbol.')
     results_strings = get_strings_from_jsons(results_names, results_path)
-    results_objects = get_result_obj_from_strings(results_strings, BootstrapResults)
+    results_objects = get_result_obj_from_strings(results_strings, results_type)
     results_dicts = []
-    for res_obj in results_objects:
-        results_dicts.append(convert_bootstrap_res_to_dict(res_obj, hyperparams_need=False))
-    joined_dict = full_dicts_join(results_dicts)
-
-    results_df = pd.DataFrame(joined_dict)
-    results_df.to_csv(f"{csv_path if csv_path else ''}{csv_name}", index=False)
-
-
-def append_single_res_to_csv(results_names,
-                             csv_name,
-                             results_path: Optional[str] = None,
-                             csv_path: Optional[str] = None,
-                             copy: bool = False):
-    if not bool(re.search("\.csv$", csv_name)):
-        raise ValueError(f'csv file name must be in *.csv format. Got {csv_name}')
-    if csv_path and not bool(re.search("/$", csv_path)):
-        raise ValueError(f'path must end with "/" symbol.')
-    results_strings = get_strings_from_jsons(results_names, results_path)
-    results_objects = get_result_obj_from_strings(results_strings, SingleRunResults)
-    results_dicts = []
-    for res_obj in results_objects:
-        results_dicts.append(convert_single_res_to_dict(res_obj, hyperparams_need=False))
-    joined_dict = full_dicts_join(results_dicts)
-
-    old_results_df = pd.read_csv(f"{csv_path if csv_path else ''}{csv_name}")
-    new_results_df = pd.DataFrame(joined_dict)
-    results_df = pd.concat([old_results_df, new_results_df], ignore_index=True)
-    if copy:
-        results_df.to_csv(f"{csv_path if csv_path else ''}copy_{csv_name}", index=False)
-    else:
-        results_df.to_csv(f"{csv_path if csv_path else ''}{csv_name}", index=False)
-
-
-def append_bootstrap_res_to_csv(results_names,
-                                csv_name,
-                                results_path: Optional[str] = None,
-                                csv_path: Optional[str] = None,
-                                copy: bool = False):
-    if not bool(re.search("\.csv$", csv_name)):
-        raise ValueError(f'csv file name must be in *.csv format. Got {csv_name}')
-    if csv_path and not bool(re.search("/$", csv_path)):
-        raise ValueError(f'path must end with "/" symbol.')
-    results_strings = get_strings_from_jsons(results_names, results_path)
-    results_objects = get_result_obj_from_strings(results_strings, BootstrapResults)
-    results_dicts = []
-    for res_obj in results_objects:
-        results_dicts.append(convert_bootstrap_res_to_dict(res_obj, hyperparams_need=False))
+    if results_type is SingleRunResults:
+        for res_obj in results_objects:
+            results_dicts.append(convert_single_res_to_dict(res_obj, hyperparams_need=False))
+    elif results_type is BootstrapResults:
+        for res_obj in results_objects:
+            results_dicts.append(convert_bootstrap_res_to_dict(res_obj, hyperparams_need=False))
+    elif results_type is SingleDatasetsComparisonResults:
+        for res_obj in results_objects:
+            results_dicts.append(convert_datasets_comparison_res_to_dict(res_obj, hyperparams_need=False))
     joined_dict = full_dicts_join(results_dicts)
 
     old_results_df = pd.read_csv(f"{csv_path if csv_path else ''}{csv_name}")

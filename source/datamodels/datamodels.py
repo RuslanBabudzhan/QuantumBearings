@@ -1,3 +1,9 @@
+"""
+TODO: Rewrite fileds types to complex data type
+This module implements models of data, used for ML experiments results tracking
+
+"""
+
 from typing import List
 from enum import Enum
 from abc import ABC, abstractmethod
@@ -8,6 +14,8 @@ from pydantic import BaseModel
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
+
+
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn import feature_selection
 
@@ -22,6 +30,7 @@ class BaseResultsData(ABC, BaseModel):  # TODO: add z-stat
 
     use_signal: bool  # Was raw signal data used in training
     use_specter: bool  # Was specter of signal used in training
+    use_z_stat: bool  # Was data scaled to z-statistic
     axes: List[str]  # Which axes were used in training. Use Axes.<axis>.name
     stats: List[str]  # Which statistics were used in training. Use Stats.<stat>.name
 
@@ -58,6 +67,31 @@ class SingleRunResults(BaseResultsData):
                              f"Method of dimensionality reducing: {self.dim_reducing_method}\n" \
                              f"Scores: accuracy = {self.accuracy_score:.3f}, precision = {self.precision_score:.3f}, " \
                              f"recall = {self.recall_score:.3f}, F1 = {self.f1_score:.3f}"
+        return str_representation
+
+
+class SingleDatasetsComparisonResults(BaseResultsData):
+    """ Model of data obtained as a result of datasets comparison for one fitting of ML model."""
+    train_dataset_name: str  # dataset used for train
+    test_dataset_name: str  # dataset used for test
+    TPR_score: float  # TPR score on test set
+    TNR_score: float  # TNR score on test set
+
+    def __str__(self):
+        """implementation of human-readable representation of the object"""
+        str_representation = f"Result name: {self.run_label}\n" \
+                             f"ML model: {self.model_name}\n" \
+                             f"Train dataset: {self.train_dataset_name}\n" \
+                             f"Test dataset: {self.train_dataset_name}\n" \
+                             f"Hyperparameters: {self.hyperparameters}\n" \
+                             f"Trained on signal data: {self.use_signal}\n" \
+                             f"Trained on specter data: {self.use_specter}\n" \
+                             f"Bearing signal axes: {self.axes}\n" \
+                             f"Statistics for features generation: {self.stats}\n" \
+                             f"Method of dimensionality reducing: {self.dim_reducing_method}\n" \
+                             f"Scores: accuracy = {self.accuracy_score:.3f}, precision = {self.precision_score:.3f}, " \
+                             f"recall = {self.recall_score:.3f}, F1 = {self.f1_score:.3f},  " \
+                             f"TPR = {self.TPR_score:.3f},  F1 = {self.TNR_score:.3f}"
         return str_representation
 
 
