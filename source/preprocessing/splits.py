@@ -41,29 +41,14 @@ class Splitter(BaseSplitter):
 
         experiments_indices = dataset['experiment_id'].unique()
 
-        prepared_dataset = None
+        prepared_dataset = []
 
         for experiment in experiments_indices:
 
             experiment_prepared_vectors = self._split_single_experiment(experiment, targets, dataset)
-            if prepared_dataset is None:
+            if not prepared_dataset:
                 prepared_dataset = experiment_prepared_vectors
             else:
-                prepared_dataset = np.vstack((prepared_dataset, experiment_prepared_vectors))
+                prepared_dataset.extend(experiment_prepared_vectors)
+        return np.array(prepared_dataset)
 
-        return prepared_dataset
-
-signals_dataset = pd.read_csv('F:/PythonNotebooks/Study/Quantum/Bearings/data/own datasets/bearing_signals.csv')
-classes_dataset = pd.read_csv('F:/PythonNotebooks/Study/Quantum/Bearings/data/own datasets/bearing_classes.csv', delimiter=';', skiprows=[1])
-
-splitter = Splitter(use_specter=True, use_5_stats=True, use_15_stats=False, use_z_stat=False)
-prepared_data = splitter.split_dataset(signals_dataset, classes_dataset)
-
-print(f"features number: {prepared_data.shape[1]-1}")
-print(f"examples number: {prepared_data.shape[0]}")
-prepared_dataframe = pd.DataFrame(prepared_data, columns=None)
-
-X = prepared_dataframe.iloc[:, 1:]
-y = prepared_dataframe.iloc[:, 0]
-
-print(X.head())

@@ -66,34 +66,26 @@ class BaseSplitter(ABC):
         :param dataset: whole dataset to extract experiment data
         :return: statistics array with shape (splits, statistics) for of one splited experiment
         """
-        # def _split_single_experiment(self, experiment, targets, dataset):
-        target = targets[targets['bearing_id'] == experiment]['status'].to_numpy()
+        target = targets[targets['bearing_id'] == experiment]['status'].values[0]
         experiment_data = dataset[dataset['experiment_id'] == experiment]
         batch_time_range = (self.stable_area[0][1] - self.stable_area[0][0]) / self.splits_number
-        experiment_prepared_vectors = None
+        experiment_prepared_vectors = []
         for split in range(self.splits_number):
 
             batch = experiment_data[self.stable_area[0][0] + split * batch_time_range < experiment_data['timestamp']]
             batch = batch[batch['timestamp'] < self.stable_area[0][0] + (split + 1) * batch_time_range]
 
-            cleaned_vector = np.zeros(shape=(1, 1))
-            cleaned_vector[0, 0] = target
+            cleaned_vector = [target]
 
             for frequency_column in self.frequency_data_columns:
                 frequency_data = batch[frequency_column]
                 prepared_data = self._get_data_statistics(frequency_data.to_numpy())
-                cleaned_vector = np.hstack((cleaned_vector, prepared_data))
-
-            if experiment_prepared_vectors is None:
-                experiment_prepared_vectors = cleaned_vector
-
-            else:
-                experiment_prepared_vectors = np.vstack((experiment_prepared_vectors, cleaned_vector))
-
+                cleaned_vector.extend(*prepared_data)
+            experiment_prepared_vectors.append(cleaned_vector)
         return experiment_prepared_vectors
 
     def _get_data_statistics(self, raw_data):
-        prepared = None
+        prepared = [0]
         data = raw_data
 
         assert self.use_signal or self.use_specter, "either use_signal or use_specter must be true"
@@ -112,11 +104,12 @@ class BaseSplitter(ABC):
         for data_element in data:
             statistic_values = []
             for statistic_function in self.stats.values():
-                statistic_values.append(statistic_function.count_stat(data_element))
-            statistic_values = np.array(statistic_values)
+                single_statistics_value = statistic_function.count_stat(data_element)
+                print(type(single_statistics_value))
+                statistic_values.append(single_statistics_value)
 
-            if prepared is None:
-                prepared = statistic_values.reshape(1, -1)
+            if len(prepared) == 1:
+                prepared[0] = statistic_values
             else:
-                prepared = np.hstack((prepared, statistic_values.reshape(1, -1)))
+                prepared = prepared.append(statistic_values)
         return prepared
