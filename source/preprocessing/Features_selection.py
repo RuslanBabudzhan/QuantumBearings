@@ -10,10 +10,7 @@ class Features_selection:
         self.n_features = n # number of selected features
 
 
-    def VT_export(self, 
-                  fs_method: sklearn.base.BaseEstimator, 
-                  X: Union[pd.DataFrame, np.ndarray], 
-                  y: Union[pd.DataFrame, np.ndarray]) -> list:
+    def VT_export(self, fs_method: sklearn.base.BaseEstimator, X: Union[pd.DataFrame, np.ndarray], y: Union[pd.DataFrame, np.ndarray]) -> list:
         """
         fs_model: sklearn.feature_selection.VarianceThreshold
         
@@ -27,10 +24,7 @@ class Features_selection:
         return important_features['feature'].iloc[:self.n_features].to_list()
 
 
-    def wrapper_fs_export(self, 
-                          fs_method: sklearn.base.BaseEstimator, 
-                          X: Union[pd.DataFrame, np.ndarray], 
-                          y: Union[pd.DataFrame, np.ndarray]) -> list:
+    def wrapper_fs_export(self, fs_method: sklearn.base.BaseEstimator, X: Union[pd.DataFrame, np.ndarray], y: Union[pd.DataFrame, np.ndarray]) -> list:
         """
         fs_model:
             sklearn.feature_selection.SequentialFeatureSelector
@@ -56,10 +50,7 @@ class Features_selection:
         return important_features['feature'].iloc[:self.n_features].to_list()
 
 
-    def filter_method_export(self, 
-                             fs_method: sklearn.base.BaseEstimator,    
-                             X: Union[pd.DataFrame, np.ndarray], 
-                             y: Union[pd.DataFrame, np.ndarray]) -> list:
+    def filter_method_export(self, fs_method: sklearn.base.BaseEstimator, X: Union[pd.DataFrame, np.ndarray], y: Union[pd.DataFrame, np.ndarray]) -> list:
         """
         fs_model:
             sklearn.feature_selection.SelectFpr
@@ -70,6 +61,7 @@ class Features_selection:
         Fuction takes X and y data, fit filter methods object, reterns df with selected features.
         """
         fs_method.fit_transform(abs(X), abs(y))
+
         important_features = pd.DataFrame(
             [fs_method.feature_names_in_, fs_method.pvalues_]).\
                 transpose().\
@@ -79,10 +71,7 @@ class Features_selection:
         return important_features['feature'].iloc[:self.n_features].to_list()
 
 
-    def select_with_method(self, 
-                           methods: dict, 
-                           X: Union[pd.DataFrame, np.ndarray], 
-                           y: Union[pd.DataFrame, np.ndarray]):
+    def select_with_method(self, methods: dict, X: Union[pd.DataFrame, np.ndarray], y: Union[pd.DataFrame, np.ndarray]):
         """
         Iterate by FS dict and return selected features as DataFrame
         """
@@ -93,13 +82,13 @@ class Features_selection:
             start_time = time.time()
 
             if name == 'VT':
-                important_features = self.VT_export(method, X.values, y)
+                important_features = self.VT_export(method, X, y)
 
             elif any(mod in name for mod in ['RFE', 'SFM', 'SFS']):
-                important_features = self.wrapper_fs_export(method, X.values, y)
+                important_features = self.wrapper_fs_export(method, X, y)
 
             else:
-                important_features = self.filter_method_export(method, X.values, y)
+                important_features = self.filter_method_export(method, X, y)
             
             print(f"{name} --- time: {time.time() - start_time} seconds ---")
 
