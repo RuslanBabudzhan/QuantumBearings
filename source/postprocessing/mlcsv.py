@@ -20,105 +20,28 @@ import numpy as np
 from scipy import stats
 
 from source.postprocessing.mljson import get_strings_from_jsons, get_result_obj_from_strings
-from source.datamodels.datamodels import SingleRunResults, BootstrapResults, SingleDatasetsComparisonResults
+from source.datamodels.datamodels import BaseResultsData, SingleRunResults, BootstrapResults, SingleDatasetsComparisonResults
 from source.datamodels.datamodels import Axes, Stats
 
 
-def convert_single_res_to_dict(result_object: SingleRunResults, hyperparams_need: bool = False) -> dict:
+def convert_res_to_mapped_table_row(result_object: BaseResultsData) -> dict:
     """Converts single run result to dict, that can be writen as a experiment result table row"""
-    single_run_simple_fields = {
-        "run label": result_object.run_label,
-        "ML model": result_object.model_name,
-        "Signals data used": result_object.use_signal,
-        "Specter data used": result_object.use_specter,
-        "Accuracy": result_object.accuracy_score,
-        "Precision": result_object.precision_score,
-        "Recall": result_object.recall_score,
-        "F1": result_object.f1_score
-    }
-
     converted = dict()
-    for field_name, field in zip(single_run_simple_fields.keys(), single_run_simple_fields.values()):
-        converted[field_name] = field
 
-    for axis in Axes.get_keys():
-        converted["Axis: " + axis] = True if axis in result_object.axes else False
-
-    for stat in Stats.get_keys():
-        converted["Statistic: " + stat] = True if stat in result_object.stats else False
-
-    if hyperparams_need:
-        for param_name, param in zip(result_object.hyperparameters.keys(), result_object.hyperparameters.values()):
-            converted["HyperParameter: " + param_name] = param
-
-    return converted
-
-
-def convert_datasets_comparison_res_to_dict(result_object: SingleDatasetsComparisonResults,
-                                            hyperparams_need: bool = False) -> dict:
-    """Converts single run result to dict, that can be writen as a experiment result table row"""
-    single_run_simple_fields = {
-        "run label": result_object.run_label,
-        "ML model": result_object.model_name,
-        "Train set": result_object.train_dataset_name,
-        "Test set": result_object.test_dataset_name,
-        "Signals data used": result_object.use_signal,
-        "Specter data used": result_object.use_specter,
-        "Accuracy": result_object.accuracy_score,
-        "Precision": result_object.precision_score,
-        "Recall": result_object.recall_score,
-        "F1": result_object.f1_score,
-        "TPR": result_object.TPR_score,
-        "TNR": result_object.TNR_score,
-    }
-
-    converted = dict()
-    for field_name, field in zip(single_run_simple_fields.keys(), single_run_simple_fields.values()):
-        converted[field_name] = field
-
-    for axis in Axes.get_keys():
-        converted["Axis: " + axis] = True if axis in result_object.axes else False
-
-    for stat in Stats.get_keys():
-        converted["Statistic: " + stat] = True if stat in result_object.stats else False
-
-    if hyperparams_need:
-        for param_name, param in zip(result_object.hyperparameters.keys(), result_object.hyperparameters.values()):
-            converted["HyperParameter: " + param_name] = param
-
-    return converted
-
-
-def convert_bootstrap_res_to_dict(result_object: BootstrapResults, hyperparams_need: bool = False) -> dict:
-    """Converts single run result to dict, that can be writen as a experiment result table row"""
-    simple_fields = {
-        "run label": result_object.run_label,
-        "ML model": result_object.model_name,
-        "Signals data used": result_object.use_signal,
-        "Specter data used": result_object.use_specter,
-        "samplings number": result_object.resampling_number,
-        "F1 mean": np.mean(result_object.f1_score),
-        "F1 median": np.median(result_object.f1_score),
-        "F1 mode": stats.mode(np.array(result_object.f1_score))[0][0],
-        "F1 std": np.std(result_object.f1_score),
-        "F1 skewness": stats.skew(np.array(result_object.f1_score)),
-        "F1 Kurtosis": stats.kurtosis(np.array(result_object.f1_score))
-    }
-
-    converted = dict()
-    for field_name, field in zip(simple_fields.keys(), simple_fields.values()):
-        converted[field_name] = field
-
-    for axis in Axes.get_keys():
-        converted["Axis: " + axis] = True if axis in result_object.axes else False
-
-    for stat in Stats.get_keys():
-        converted["Statistic: " + stat] = True if stat in result_object.stats else False
-
-    if hyperparams_need:
-        for param_name, param in zip(result_object.hyperparameters.keys(), result_object.hyperparameters.values()):
-            converted["HyperParameter: " + param_name] = param
-
+    for field_name, field in zip(result_object.__fields__.keys(), result_object.__fields__.values()):
+        field_metadata = field.field_info.extra['metadata']
+        if field_metadata['to_csv']:
+            field_value = getattr(result_object, field_name)
+            if field_metadata['enumerator']:
+                field_encoder = field_metadata['enumerator']
+                for possible_value in field_encoder.get_keys():
+                    converted[f"{field_metadata['short_description']}: {possible_value}"] = \
+                        True if possible_value in field_value else False
+            elif isinstance(field_value, dict):
+                for parameter_name, parameter_value in zip(field_value.keys(), field_value.values()):
+                    converted[f"{field_metadata['short_description']}: {parameter_name}"] = parameter_value
+            else:
+                converted[field_name] = field_value
     return converted
 
 
@@ -146,8 +69,7 @@ def generate_csv_from_log(results_names,
                           csv_name,
                           results_type,
                           results_path: Optional[str] = None,
-                          csv_path: Optional[str] = None,
-                          hyperparams_need=False):
+                          csv_path: Optional[str] = None):
     if not bool(re.search("\.csv$", csv_name)):
         raise ValueError(f'csv file name must be in *.csv format. Got {csv_name}')
     if csv_path and not bool(re.search("/$", csv_path)):
@@ -155,15 +77,8 @@ def generate_csv_from_log(results_names,
     results_strings = get_strings_from_jsons(results_names, results_path)
     results_objects = get_result_obj_from_strings(results_strings, results_type)
     results_dicts = []
-    if results_type is SingleRunResults:
-        for res_obj in results_objects:
-            results_dicts.append(convert_single_res_to_dict(res_obj, hyperparams_need=hyperparams_need))
-    elif results_type is BootstrapResults:
-        for res_obj in results_objects:
-            results_dicts.append(convert_bootstrap_res_to_dict(res_obj, hyperparams_need=hyperparams_need))
-    elif results_type is SingleDatasetsComparisonResults:
-        for res_obj in results_objects:
-            results_dicts.append(convert_datasets_comparison_res_to_dict(res_obj, hyperparams_need=hyperparams_need))
+    for res_obj in results_objects:
+        results_dicts.append(convert_res_to_mapped_table_row(res_obj))
     joined_dict = full_dicts_join(results_dicts)
 
     results_df = pd.DataFrame(joined_dict)
@@ -183,15 +98,8 @@ def append_res_to_csv(results_names,
     results_strings = get_strings_from_jsons(results_names, results_path)
     results_objects = get_result_obj_from_strings(results_strings, results_type)
     results_dicts = []
-    if results_type is SingleRunResults:
-        for res_obj in results_objects:
-            results_dicts.append(convert_single_res_to_dict(res_obj, hyperparams_need=False))
-    elif results_type is BootstrapResults:
-        for res_obj in results_objects:
-            results_dicts.append(convert_bootstrap_res_to_dict(res_obj, hyperparams_need=False))
-    elif results_type is SingleDatasetsComparisonResults:
-        for res_obj in results_objects:
-            results_dicts.append(convert_datasets_comparison_res_to_dict(res_obj, hyperparams_need=False))
+    for res_obj in results_objects:
+        results_dicts.append(convert_res_to_mapped_table_row(res_obj))
     joined_dict = full_dicts_join(results_dicts)
 
     old_results_df = pd.read_csv(f"{csv_path if csv_path else ''}{csv_name}")
