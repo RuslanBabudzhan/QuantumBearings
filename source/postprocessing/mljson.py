@@ -1,4 +1,5 @@
 """
+# TODO: rewrite results converter
 Module implements serialization and deserialization of Results objects (from source.datamodels.datamodels)
 
 Use write_result_obj_to_json to serialize Result object

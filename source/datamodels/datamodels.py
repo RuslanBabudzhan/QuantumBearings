@@ -4,12 +4,15 @@ This module implements models of data, used for ML experiments results tracking
 
 """
 
+# TODO: Add validation for fields with enumerators
+# TODO: Add validation for length equality of arrays
+
 from typing import List, Dict, Optional
 from abc import ABC
 
 from pydantic import BaseModel, Field
 
-from iterators import Axes, Stats, Metrics
+from source.datamodels.iterators import Axes, Stats, Metrics
 
 
 class BaseResultsData(ABC, BaseModel):
@@ -37,8 +40,8 @@ class BaseResultsData(ABC, BaseModel):
     predictions: List[float] = Field(metadata=dict(short_description="Model predictions", to_csv=False, printable=False,
                                                    enumerator=None, long_description="Prediction for each test sample"))
     scores: Dict[str, float] = Field(metadata=dict(short_description="Scores", to_csv=True, printable=True,
-                                                   enumerator=Metrics, long_description=" Dict of scores, for keys use "
-                                                                                        "Metrics.<metric>.name"))
+                                                   enumerator=Metrics, long_description=" Dict of scores (direct/mean),"
+                                                   " for keys use Metrics.<metric>.name"))
 
     def __str__(self):
         result_string = ""
@@ -76,9 +79,10 @@ class BootstrapResults(BaseResultsData):
     predictions: List[List[float]] = Field(metadata=dict(short_description="Predictions", to_csv=False,
                                                          printable=False, enumerator=None, long_description="Prediction"
                                                          " for each test sample in each resampling"))
-    scores: Dict[str, List[float]] = Field(metadata=dict(short_description="Scores", to_csv=True, printable=True,
-                                                         enumerator=Metrics, long_description=" Dict of scores for "
-                                                         "each resampling, for keys use Metrics.<metric>.name"))
+    bootstrap_scores: Dict[str, List[float]] = Field(metadata=dict(short_description="Scores", to_csv=True,
+                                                                   printable=True, enumerator=Metrics,
+                                                                   long_description="Dict of scores for each "
+                                                                   "resampling, for keys use Metrics.<metric>.name"))
 
 
 class BootstrapFeatureSelectionResults(BaseResultsData):
