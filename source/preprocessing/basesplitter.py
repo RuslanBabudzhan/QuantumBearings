@@ -1,49 +1,43 @@
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Any
 from abc import ABC, abstractmethod
 
 import numpy as np
 import pandas as pd
 from scipy import fft
-from sklearn.preprocessing import StandardScaler
 
-from source.datamodels.datamodels import Stats
+from source.datamodels.iterators import Stats
 
 
 class BaseSplitter(ABC):
     def __init__(self,
+                 stats: List[str],
                  use_signal: bool = True,
                  use_specter: bool = False,
-                 use_5_stats: bool = True,
-                 use_15_stats: bool = False,
-                 use_z_stat: bool = False):
+                 scaler: Optional[Any] = None,
+                 specter_threshold: Optional[int] = None):
         """
         Class implements chunk splittings of bearings_signals.csv dataset with subsequent processing of chunks
         """
         self.use_signal = use_signal
         self.use_specter = use_specter
-        self.use_5_stats = use_5_stats
-        self.use_15_stats = use_15_stats
-        self.use_z_stat = use_z_stat
+
+        self.scaler = scaler
         self.stable_area = None
         self.splits_number = None
-        self.frequency_data_columns = None
+        self.signal_data_columns = None
+        self.specter_threshold = specter_threshold
 
         full_stats_list = Stats.get_keys()
+        if not set(stats).issubset(full_stats_list):
+            raise ValueError(f"Invalid statistics. Possible values: {full_stats_list}")
+
         self.stats = set()
-        if self.use_5_stats:
-            for statistic_index in range(5):
+        for statistic_name in full_stats_list:
+            if statistic_name in stats:
                 self.stats.add((
-                    Stats[full_stats_list[statistic_index]].name,
-                    Stats[full_stats_list[statistic_index]].value
+                    statistic_name,
+                    Stats[statistic_name].value
                 ))
-
-        if self.use_15_stats:
-            for statistic_index in range(2, 17):
-                self.stats.add((
-                    Stats[full_stats_list[statistic_index]].name,
-                    Stats[full_stats_list[statistic_index]].value
-                ))
-
         self.stats = dict(list(self.stats))
 
     @abstractmethod
@@ -52,7 +46,7 @@ class BaseSplitter(ABC):
                       targets: pd.DataFrame,
                       stable_area: Optional[List[Tuple[int, int]]] = None,
                       splits_number: int = 10,
-                      frequency_data_columns: List[str] = None) -> np.ndarray:
+                      signal_data_columns: List[str] = None) -> np.ndarray:
         """
         Split dataset by chunks and return dataset with statistics of the chunks
         """
@@ -77,39 +71,33 @@ class BaseSplitter(ABC):
 
             cleaned_vector = [target]
 
-            for frequency_column in self.frequency_data_columns:
+            for frequency_column in self.signal_data_columns:
                 frequency_data = batch[frequency_column]
                 prepared_data = self._get_data_statistics(frequency_data.to_numpy())
                 cleaned_vector.extend(*prepared_data)
             experiment_prepared_vectors.append(cleaned_vector)
         return experiment_prepared_vectors
 
-    def _get_data_statistics(self, raw_data):
-        prepared = [0]
+    def _get_data_statistics(self, raw_data: np.ndarray):
         data = raw_data
 
-        assert self.use_signal or self.use_specter, "either use_signal or use_specter must be true"
-        assert self.use_5_stats or self.use_15_stats, "either use_5_stats or use_15_stats must be true"
-
-        if self.use_z_stat:
-            data = (data - np.mean(data))/np.std(data)
+        if self.scaler:
+            data = self.scaler().fit_transform(X=data.T)
+            data = data.T
 
         if self.use_signal and not self.use_specter:
             data = [data]
         elif self.use_specter and not self.use_signal:
-            data = [np.abs(fft.fft(data))]
+            data = [np.abs(fft.fft(data, axis=1))[:, :self.specter_threshold]]
         else:
-            data = [data, np.abs(fft.fft(data))]
+            data = [data, np.abs(fft.fft(data, axis=0))[:, :self.specter_threshold]]
 
+        statistics_matrix = []
         for data_element in data:
-            statistic_values = []
             for statistic_function in self.stats.values():
-                single_statistics_value = statistic_function.count_stat(data_element)
-                print(type(single_statistics_value))
-                statistic_values.append(single_statistics_value)
+                statistics_vector = statistic_function.count_stat(data_element, axis=1)
+                statistics_matrix.append(statistics_vector)
 
-            if len(prepared) == 1:
-                prepared[0] = statistic_values
-            else:
-                prepared = prepared.append(statistic_values)
+        prepared = np.array(statistics_matrix).T
         return prepared
+
