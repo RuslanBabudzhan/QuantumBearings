@@ -1,27 +1,23 @@
 """
-module implements work with csv and xlsx files for creating ML experiment tracking tables
+module implements work with *.csv and *.xlsx files for creating ML experiment tracking tables
 
-Use generate_csv_from_log to convert *.json log files to new *.csv table
+Use generate_csv_from_result to convert results objects/files to new *.csv table
 
-Use append_res_to_csv to append data from *.json log files to existing *.csv table
+Use append_results_to_csv to append data from *.json log files to existing *.csv table
 
 Use create_readable_xlsx to create human-readable *.xlsx table from *.csv table
 """
 
-# TODO: rewrite converters based on standardized dataclass field objects
-
-from typing import List, Optional
+from typing import List, Union, Optional, Type
 from collections import Counter
 import re
 import xlsxwriter
 
 import pandas as pd
 import numpy as np
-from scipy import stats
 
-from source.postprocessing.mljson import get_strings_from_jsons, get_result_obj_from_strings
-from source.datamodels.datamodels import BaseResultsData, SingleRunResults, BootstrapResults, SingleDatasetsComparisonResults
-from source.datamodels.datamodels import Axes, Stats
+from source.postprocessing.mljson import _get_strings_from_jsons, _get_result_obj_from_strings
+from source.datamodels.datamodels import BaseResultsData
 
 
 def convert_res_to_mapped_table_row(result_object: BaseResultsData) -> dict:
@@ -45,11 +41,18 @@ def convert_res_to_mapped_table_row(result_object: BaseResultsData) -> dict:
     return converted
 
 
-def full_dicts_join(dicts: List[dict]) -> dict:
+def _full_dicts_join(dicts: List[dict]) -> dict:
     """
-    Full joining of dictionaries.
+    Full joining of dictionaries. Used for stack rows of result tables
     Produces dict with keys that are the union of the key sets of the input dictionaries and
     values that are lists of input dictionaries values. Empty values are filled with None
+
+    Example:
+        >> d1 = {'a': 4, 'b': 12.5, 'c': 'ans', 'd': [5.1, 16]}
+        >> d2 = {'b': 5.4, 'a': 11, 'c': 'res', 'e': True}
+        >> d = _full_dicts_join([d1, d2])
+        >> print(d)
+        {'a': [4, 11], 'b': [12.5, 5.4], 'c': ['ans', 'res'], 'd': [[5.1, 16], None], 'e': [None, True]}
     """
     joined_dict_keys = [list(d.keys()) for d in dicts]
     joined_dict_keys = Counter([item for sublist in joined_dict_keys for item in sublist])
@@ -65,42 +68,69 @@ def full_dicts_join(dicts: List[dict]) -> dict:
     return joined
 
 
-def generate_csv_from_log(results_names,
-                          csv_name,
-                          results_type,
-                          results_path: Optional[str] = None,
-                          csv_path: Optional[str] = None):
+def generate_csv_from_results(results: Union[List[BaseResultsData], List[str]],
+                              csv_name: str,
+                              results_type: Type[BaseResultsData],
+                              results_path: Optional[str] = None,
+                              csv_path: Optional[str] = None):
+    """
+    Creates new *.csv file, containing rows, that represent ML experiments results
+    :param results: result objects or names of files that represent rows to fill in the *.csv file
+    :param csv_name: name of *.csv file
+    :param results_type: type of results. Use source.datamodels.datamodels
+    :param results_path: path to reach files with results data
+    :param csv_path: path to save *.csv file
+    :return: None
+    """
     if not bool(re.search("\.csv$", csv_name)):
         raise ValueError(f'csv file name must be in *.csv format. Got {csv_name}')
     if csv_path and not bool(re.search("/$", csv_path)):
         raise ValueError(f'path must end with "/" symbol.')
-    results_strings = get_strings_from_jsons(results_names, results_path)
-    results_objects = get_result_obj_from_strings(results_strings, results_type)
+    if isinstance(results[0], str):
+        results_strings = _get_strings_from_jsons(results, results_path)
+        results_objects = _get_result_obj_from_strings(results_strings, results_type)
+    else:
+        results_objects = results
     results_dicts = []
     for res_obj in results_objects:
         results_dicts.append(convert_res_to_mapped_table_row(res_obj))
-    joined_dict = full_dicts_join(results_dicts)
+    joined_dict = _full_dicts_join(results_dicts)
 
     results_df = pd.DataFrame(joined_dict)
     results_df.to_csv(f"{csv_path if csv_path else ''}{csv_name}", index=False)
 
 
-def append_res_to_csv(results_names,
-                      csv_name,
-                      results_type,
-                      results_path: Optional[str] = None,
-                      csv_path: Optional[str] = None,
-                      copy: bool = False):
+def append_results_to_csv(results: Union[List[BaseResultsData], List[str]],
+                          csv_name: str,
+                          results_type: Optional[Type[BaseResultsData]],
+                          results_path: Optional[str] = None,
+                          csv_path: Optional[str] = None,
+                          copy: bool = False):
+    """
+    Append result rows to existing *.csv file. Each row represents ML experiments results
+    :param results: result objects or names of files that represent rows to fill in the *.csv file
+    :param csv_name: name of *.csv file
+    :param results_type: type of results. Use source.datamodels.datamodels
+    :param results_path: path to reach files with results data
+    :param csv_path: path to save *.csv file
+    :param copy: Append results to the copy of existing *.csv or rewrite the *.csv
+    :return: None
+    """
     if not bool(re.search("\.csv$", csv_name)):
         raise ValueError(f'csv file name must be in *.csv format. Got {csv_name}')
     if csv_path and not bool(re.search("/$", csv_path)):
         raise ValueError(f'path must end with "/" symbol.')
-    results_strings = get_strings_from_jsons(results_names, results_path)
-    results_objects = get_result_obj_from_strings(results_strings, results_type)
+    if isinstance(results[0], str):
+        if not results_type:
+            raise TypeError('"results_type" must be added if "results" represents a list of files names')
+        results_strings = _get_strings_from_jsons(results, results_path)
+        results_objects = _get_result_obj_from_strings(results_strings, results_type)
+    else:
+        results_objects = results
     results_dicts = []
     for res_obj in results_objects:
         results_dicts.append(convert_res_to_mapped_table_row(res_obj))
-    joined_dict = full_dicts_join(results_dicts)
+    joined_dict = _full_dicts_join(results_dicts)
 
     old_results_df = pd.read_csv(f"{csv_path if csv_path else ''}{csv_name}")
     new_results_df = pd.DataFrame(joined_dict)
@@ -112,6 +142,14 @@ def append_res_to_csv(results_names,
 
 
 def create_readable_xlsx(xlsx_name, csv_name, xlsx_path: Optional[str] = None, csv_path: Optional[str] = None):
+    """
+    Creates readable xlsx file from csv name.
+    :param xlsx_name: name of *.xlsx file
+    :param csv_name: name of *.csv file
+    :param xlsx_path: path of *.xlsx file
+    :param csv_path: path of *.csv file
+    :return: None
+    """
     themes = {'light blue': {'head_font': '#F3F3F3', 'head_bg': '#142459', 'font': '#3D3D3D', 'bg': '#FBFBFB',
                              'head_border': '#F3F3F3', 'border': '#6A6A6A'}}
     theme = themes['light blue']
