@@ -87,6 +87,8 @@ def generate_csv_from_results(results: Union[List[BaseResultsData], List[str]],
     if csv_path and not bool(re.search("/$", csv_path)):
         raise ValueError(f'path must end with "/" symbol.')
     if isinstance(results[0], str):
+        if not results_type:
+            raise TypeError('"results_type" must be added if "results" represents a list of files names')
         results_objects = deserialize_result(results, results_type, results_path)
     else:
         results_objects = results
@@ -122,8 +124,7 @@ def append_results_to_csv(results: Union[List[BaseResultsData], List[str]],
     if isinstance(results[0], str):
         if not results_type:
             raise TypeError('"results_type" must be added if "results" represents a list of files names')
-        results_strings = _get_strings_from_jsons(results, results_path)
-        results_objects = _get_result_obj_from_strings(results_strings, results_type)
+        results_objects = deserialize_result(results, results_type, results_path)
     else:
         results_objects = results
     results_dicts = []
