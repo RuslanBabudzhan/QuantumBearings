@@ -16,7 +16,7 @@ import xlsxwriter
 import pandas as pd
 import numpy as np
 
-from source.postprocessing.mljson import _get_strings_from_jsons, _get_result_obj_from_strings
+from source.postprocessing.mljson import deserialize_result
 from source.datamodels.datamodels import BaseResultsData
 
 
@@ -28,7 +28,7 @@ def convert_res_to_mapped_table_row(result_object: BaseResultsData) -> dict:
         field_metadata = field.field_info.extra['metadata']
         if field_metadata['to_csv']:
             field_value = getattr(result_object, field_name)
-            if field_metadata['enumerator']:
+            if field_metadata['enumerator'] and isinstance(field_value, list):
                 field_encoder = field_metadata['enumerator']
                 for possible_value in field_encoder.get_keys():
                     converted[f"{field_metadata['short_description']}: {possible_value}"] = \
@@ -87,8 +87,7 @@ def generate_csv_from_results(results: Union[List[BaseResultsData], List[str]],
     if csv_path and not bool(re.search("/$", csv_path)):
         raise ValueError(f'path must end with "/" symbol.')
     if isinstance(results[0], str):
-        results_strings = _get_strings_from_jsons(results, results_path)
-        results_objects = _get_result_obj_from_strings(results_strings, results_type)
+        results_objects = deserialize_result(results, results_type, results_path)
     else:
         results_objects = results
     results_dicts = []
@@ -176,6 +175,15 @@ def create_readable_xlsx(xlsx_name, csv_name, xlsx_path: Optional[str] = None, c
         raise ValueError(f'csv path must end with "/" symbol. Got {csv_path}')
 
     data = pd.read_csv(f"{csv_path if csv_path else ''}{csv_name}", delimiter=',')
+    dataframe_columns = list(data.columns)
+    sorted_columns_order = ['Scores', 'Axes', 'Statistics', 'Hyperparameters']
+    for columns_group_prefix in sorted_columns_order:
+        group_pattern = f"^{columns_group_prefix}:"
+        group_matches = [col_name for col_name in dataframe_columns if re.search(group_pattern, col_name)]
+        dataframe_columns = [col_name for col_name in dataframe_columns if col_name not in group_matches]
+        dataframe_columns.extend(group_matches)
+    data = data[dataframe_columns]
+
     data.insert(loc=0, column='experiment index', value=np.arange(len(data)))
     data.astype('object')
 
