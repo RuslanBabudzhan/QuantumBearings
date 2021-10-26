@@ -29,6 +29,9 @@ class BaseResultsData(ABC, BaseModel):
                                            enumerator=None, long_description="Was raw signal data used in training"))
     use_specter: bool = Field(metadata=dict(short_description="Was specter used", to_csv=True, printable=True,
                                             enumerator=None, long_description="Was specter of signal used in training"))
+    specter_threshold: Optional[int] = Field(default_factory=None, metadata=dict(short_description="Specter threshold",
+                                             printable=True, enumerator=None, to_csv=True,
+                                             long_description="Max frequency in signal specter"))
 
     axes: List[str] = Field(metadata=dict(short_description="Axes", to_csv=True, printable=False,
                                           enumerator=Axes, long_description="Which axes were used in training. "
