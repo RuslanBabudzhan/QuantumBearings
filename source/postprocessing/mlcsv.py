@@ -1,132 +1,58 @@
 """
-module implements work with csv and xlsx files for creating ML experiment tracking tables
+module implements work with *.csv and *.xlsx files for creating ML experiment tracking tables
 
-Use generate_csv_from_log to convert *.json log files to new *.csv table
+Use generate_csv_from_result to convert results objects/files to new *.csv table
 
-Use append_res_to_csv to append data from *.json log files to existing *.csv table
+Use append_results_to_csv to append data from *.json log files to existing *.csv table
 
 Use create_readable_xlsx to create human-readable *.xlsx table from *.csv table
 """
 
-# TODO: rewrite converters based on standardized dataclass field objects
-
-from typing import List, Optional
+from typing import List, Union, Optional, Type
 from collections import Counter
 import re
 import xlsxwriter
 
 import pandas as pd
 import numpy as np
-from scipy import stats
 
-from source.postprocessing.mljson import get_strings_from_jsons, get_result_obj_from_strings
-from source.datamodels.datamodels import SingleRunResults, BootstrapResults, SingleDatasetsComparisonResults
-from source.datamodels.datamodels import Axes, Stats
+from source.postprocessing.mljson import _get_strings_from_jsons, _get_result_obj_from_strings
+from source.datamodels.datamodels import BaseResultsData
 
 
-def convert_single_res_to_dict(result_object: SingleRunResults, hyperparams_need: bool = False) -> dict:
+def convert_res_to_mapped_table_row(result_object: BaseResultsData) -> dict:
     """Converts single run result to dict, that can be writen as a experiment result table row"""
-    single_run_simple_fields = {
-        "run label": result_object.run_label,
-        "ML model": result_object.model_name,
-        "Signals data used": result_object.use_signal,
-        "Specter data used": result_object.use_specter,
-        "Accuracy": result_object.accuracy_score,
-        "Precision": result_object.precision_score,
-        "Recall": result_object.recall_score,
-        "F1": result_object.f1_score
-    }
-
     converted = dict()
-    for field_name, field in zip(single_run_simple_fields.keys(), single_run_simple_fields.values()):
-        converted[field_name] = field
 
-    for axis in Axes.get_keys():
-        converted["Axis: " + axis] = True if axis in result_object.axes else False
-
-    for stat in Stats.get_keys():
-        converted["Statistic: " + stat] = True if stat in result_object.stats else False
-
-    if hyperparams_need:
-        for param_name, param in zip(result_object.hyperparameters.keys(), result_object.hyperparameters.values()):
-            converted["HyperParameter: " + param_name] = param
-
+    for field_name, field in zip(result_object.__fields__.keys(), result_object.__fields__.values()):
+        field_metadata = field.field_info.extra['metadata']
+        if field_metadata['to_csv']:
+            field_value = getattr(result_object, field_name)
+            if field_metadata['enumerator']:
+                field_encoder = field_metadata['enumerator']
+                for possible_value in field_encoder.get_keys():
+                    converted[f"{field_metadata['short_description']}: {possible_value}"] = \
+                        True if possible_value in field_value else False
+            elif isinstance(field_value, dict):
+                for parameter_name, parameter_value in zip(field_value.keys(), field_value.values()):
+                    converted[f"{field_metadata['short_description']}: {parameter_name}"] = parameter_value
+            else:
+                converted[field_name] = field_value
     return converted
 
 
-def convert_datasets_comparison_res_to_dict(result_object: SingleDatasetsComparisonResults,
-                                            hyperparams_need: bool = False) -> dict:
-    """Converts single run result to dict, that can be writen as a experiment result table row"""
-    single_run_simple_fields = {
-        "run label": result_object.run_label,
-        "ML model": result_object.model_name,
-        "Train set": result_object.train_dataset_name,
-        "Test set": result_object.test_dataset_name,
-        "Signals data used": result_object.use_signal,
-        "Specter data used": result_object.use_specter,
-        "Accuracy": result_object.accuracy_score,
-        "Precision": result_object.precision_score,
-        "Recall": result_object.recall_score,
-        "F1": result_object.f1_score,
-        "TPR": result_object.TPR_score,
-        "TNR": result_object.TNR_score,
-    }
-
-    converted = dict()
-    for field_name, field in zip(single_run_simple_fields.keys(), single_run_simple_fields.values()):
-        converted[field_name] = field
-
-    for axis in Axes.get_keys():
-        converted["Axis: " + axis] = True if axis in result_object.axes else False
-
-    for stat in Stats.get_keys():
-        converted["Statistic: " + stat] = True if stat in result_object.stats else False
-
-    if hyperparams_need:
-        for param_name, param in zip(result_object.hyperparameters.keys(), result_object.hyperparameters.values()):
-            converted["HyperParameter: " + param_name] = param
-
-    return converted
-
-
-def convert_bootstrap_res_to_dict(result_object: BootstrapResults, hyperparams_need: bool = False) -> dict:
-    """Converts single run result to dict, that can be writen as a experiment result table row"""
-    simple_fields = {
-        "run label": result_object.run_label,
-        "ML model": result_object.model_name,
-        "Signals data used": result_object.use_signal,
-        "Specter data used": result_object.use_specter,
-        "samplings number": result_object.resampling_number,
-        "F1 mean": np.mean(result_object.f1_score),
-        "F1 median": np.median(result_object.f1_score),
-        "F1 mode": stats.mode(np.array(result_object.f1_score))[0][0],
-        "F1 std": np.std(result_object.f1_score),
-        "F1 skewness": stats.skew(np.array(result_object.f1_score)),
-        "F1 Kurtosis": stats.kurtosis(np.array(result_object.f1_score))
-    }
-
-    converted = dict()
-    for field_name, field in zip(simple_fields.keys(), simple_fields.values()):
-        converted[field_name] = field
-
-    for axis in Axes.get_keys():
-        converted["Axis: " + axis] = True if axis in result_object.axes else False
-
-    for stat in Stats.get_keys():
-        converted["Statistic: " + stat] = True if stat in result_object.stats else False
-
-    if hyperparams_need:
-        for param_name, param in zip(result_object.hyperparameters.keys(), result_object.hyperparameters.values()):
-            converted["HyperParameter: " + param_name] = param
-
-    return converted
-
-
-def full_dicts_join(dicts: List[dict]) -> dict:
+def _full_dicts_join(dicts: List[dict]) -> dict:
     """
-    Full joining of dictionaries.
+    Full joining of dictionaries. Used for stack rows of result tables
     Produces dict with keys that are the union of the key sets of the input dictionaries and
     values that are lists of input dictionaries values. Empty values are filled with None
+
+    Example:
+        >> d1 = {'a': 4, 'b': 12.5, 'c': 'ans', 'd': [5.1, 16]}
+        >> d2 = {'b': 5.4, 'a': 11, 'c': 'res', 'e': True}
+        >> d = _full_dicts_join([d1, d2])
+        >> print(d)
+        {'a': [4, 11], 'b': [12.5, 5.4], 'c': ['ans', 'res'], 'd': [[5.1, 16], None], 'e': [None, True]}
     """
     joined_dict_keys = [list(d.keys()) for d in dicts]
     joined_dict_keys = Counter([item for sublist in joined_dict_keys for item in sublist])
@@ -142,57 +68,69 @@ def full_dicts_join(dicts: List[dict]) -> dict:
     return joined
 
 
-def generate_csv_from_log(results_names,
-                          csv_name,
-                          results_type,
-                          results_path: Optional[str] = None,
-                          csv_path: Optional[str] = None,
-                          hyperparams_need=False):
+def generate_csv_from_results(results: Union[List[BaseResultsData], List[str]],
+                              csv_name: str,
+                              results_type: Type[BaseResultsData],
+                              results_path: Optional[str] = None,
+                              csv_path: Optional[str] = None):
+    """
+    Creates new *.csv file, containing rows, that represent ML experiments results
+    :param results: result objects or names of files that represent rows to fill in the *.csv file
+    :param csv_name: name of *.csv file
+    :param results_type: type of results. Use source.datamodels.datamodels
+    :param results_path: path to reach files with results data
+    :param csv_path: path to save *.csv file
+    :return: None
+    """
     if not bool(re.search("\.csv$", csv_name)):
         raise ValueError(f'csv file name must be in *.csv format. Got {csv_name}')
     if csv_path and not bool(re.search("/$", csv_path)):
         raise ValueError(f'path must end with "/" symbol.')
-    results_strings = get_strings_from_jsons(results_names, results_path)
-    results_objects = get_result_obj_from_strings(results_strings, results_type)
+    if isinstance(results[0], str):
+        results_strings = _get_strings_from_jsons(results, results_path)
+        results_objects = _get_result_obj_from_strings(results_strings, results_type)
+    else:
+        results_objects = results
     results_dicts = []
-    if results_type is SingleRunResults:
-        for res_obj in results_objects:
-            results_dicts.append(convert_single_res_to_dict(res_obj, hyperparams_need=hyperparams_need))
-    elif results_type is BootstrapResults:
-        for res_obj in results_objects:
-            results_dicts.append(convert_bootstrap_res_to_dict(res_obj, hyperparams_need=hyperparams_need))
-    elif results_type is SingleDatasetsComparisonResults:
-        for res_obj in results_objects:
-            results_dicts.append(convert_datasets_comparison_res_to_dict(res_obj, hyperparams_need=hyperparams_need))
-    joined_dict = full_dicts_join(results_dicts)
+    for res_obj in results_objects:
+        results_dicts.append(convert_res_to_mapped_table_row(res_obj))
+    joined_dict = _full_dicts_join(results_dicts)
 
     results_df = pd.DataFrame(joined_dict)
     results_df.to_csv(f"{csv_path if csv_path else ''}{csv_name}", index=False)
 
 
-def append_res_to_csv(results_names,
-                      csv_name,
-                      results_type,
-                      results_path: Optional[str] = None,
-                      csv_path: Optional[str] = None,
-                      copy: bool = False):
+def append_results_to_csv(results: Union[List[BaseResultsData], List[str]],
+                          csv_name: str,
+                          results_type: Optional[Type[BaseResultsData]],
+                          results_path: Optional[str] = None,
+                          csv_path: Optional[str] = None,
+                          copy: bool = False):
+    """
+    Append result rows to existing *.csv file. Each row represents ML experiments results
+    :param results: result objects or names of files that represent rows to fill in the *.csv file
+    :param csv_name: name of *.csv file
+    :param results_type: type of results. Use source.datamodels.datamodels
+    :param results_path: path to reach files with results data
+    :param csv_path: path to save *.csv file
+    :param copy: Append results to the copy of existing *.csv or rewrite the *.csv
+    :return: None
+    """
     if not bool(re.search("\.csv$", csv_name)):
         raise ValueError(f'csv file name must be in *.csv format. Got {csv_name}')
     if csv_path and not bool(re.search("/$", csv_path)):
         raise ValueError(f'path must end with "/" symbol.')
-    results_strings = get_strings_from_jsons(results_names, results_path)
-    results_objects = get_result_obj_from_strings(results_strings, results_type)
+    if isinstance(results[0], str):
+        if not results_type:
+            raise TypeError('"results_type" must be added if "results" represents a list of files names')
+        results_strings = _get_strings_from_jsons(results, results_path)
+        results_objects = _get_result_obj_from_strings(results_strings, results_type)
+    else:
+        results_objects = results
     results_dicts = []
-    if results_type is SingleRunResults:
-        for res_obj in results_objects:
-            results_dicts.append(convert_single_res_to_dict(res_obj, hyperparams_need=False))
-    elif results_type is BootstrapResults:
-        for res_obj in results_objects:
-            results_dicts.append(convert_bootstrap_res_to_dict(res_obj, hyperparams_need=False))
-    elif results_type is SingleDatasetsComparisonResults:
-        for res_obj in results_objects:
-            results_dicts.append(convert_datasets_comparison_res_to_dict(res_obj, hyperparams_need=False))
-    joined_dict = full_dicts_join(results_dicts)
+    for res_obj in results_objects:
+        results_dicts.append(convert_res_to_mapped_table_row(res_obj))
+    joined_dict = _full_dicts_join(results_dicts)
 
     old_results_df = pd.read_csv(f"{csv_path if csv_path else ''}{csv_name}")
     new_results_df = pd.DataFrame(joined_dict)
@@ -204,6 +142,14 @@ def append_res_to_csv(results_names,
 
 
 def create_readable_xlsx(xlsx_name, csv_name, xlsx_path: Optional[str] = None, csv_path: Optional[str] = None):
+    """
+    Creates readable xlsx file from csv name.
+    :param xlsx_name: name of *.xlsx file
+    :param csv_name: name of *.csv file
+    :param xlsx_path: path of *.xlsx file
+    :param csv_path: path of *.csv file
+    :return: None
+    """
     themes = {'light blue': {'head_font': '#F3F3F3', 'head_bg': '#142459', 'font': '#3D3D3D', 'bg': '#FBFBFB',
                              'head_border': '#F3F3F3', 'border': '#6A6A6A'}}
     theme = themes['light blue']

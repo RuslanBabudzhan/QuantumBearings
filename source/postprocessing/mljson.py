@@ -1,11 +1,11 @@
 """
+# TODO: rewrite results converter
 Module implements serialization and deserialization of Results objects (from source.datamodels.datamodels)
 
-Use write_result_obj_to_json to serialize Result object
+Use serialize_result to serialize Result object
 
-Use get_strings_from_jsons to create a list of strings from list of *.json files
+Use deserialize_result to deserialize Result objects
 
-Use get_result_obj_from_strings to get Result objects from strings
 """
 
 
@@ -20,19 +20,28 @@ from source.datamodels.datamodels import BaseResultsData
 
 
 class EnhancedJSONEncoder(json.JSONEncoder):
+    """Used for serialization of pydantic`s dataclasses objects"""
     def default(self, o):
         if dataclasses.is_dataclass(o):
             return dataclasses.asdict(o)
         return super().default(o)
 
 
-def write_result_obj_to_json(result: dict, filename: str, filepath: Optional[str] = None):
-    """ implements Results object serialization """
+def serialize_result(result: Union[BaseResultsData, dict], filename: str, filepath: Optional[str] = None):
+    """
+    implements Results object serialization
+    :param result: pydantic object or dictionary represents results of ML experiment
+    :param filename: name of *.json file
+    :param filepath: path of *.json file
+    :return: None
+    """
     if not bool(re.search("\.json$", filename)):
         raise ValueError(f'log file name must be in *.json format. Got {filename}')
     if filepath and not bool(re.search("/$", filepath)):
         raise ValueError(f'path must end with "/" symbol.')
 
+    if not isinstance(result, dict):
+        result = result.dict()
     if filepath:
         fullname = f"{filepath}{filename}"
     else:
@@ -41,7 +50,23 @@ def write_result_obj_to_json(result: dict, filename: str, filepath: Optional[str
         json.dump(result, write_file, cls=EnhancedJSONEncoder)
 
 
-def get_strings_from_jsons(filenames: Union[str, List[str]], filepath: Optional[str] = None) -> List[str]:
+def deserialize_result(filenames: Union[str, List[str]],
+                       result_obj_type: Type[BaseResultsData],
+                       filepath: Optional[str] = None) -> List[BaseResultsData]:
+    """
+    implements Results object deserialization
+    :param filenames: names of *.json files that need to be deserialized
+    :param result_obj_type: type of objects to which files should be casted
+    :param filepath: path to *.json files
+    :return: list of objects of type result_obj_type
+    """
+    json_strings = _get_strings_from_jsons(filenames, filepath)
+    result_objects = _get_result_obj_from_strings(json_strings, result_obj_type)
+    return result_objects
+
+
+def _get_strings_from_jsons(filenames: Union[str, List[str]], filepath: Optional[str] = None) -> List[str]:
+    """generates strings from *.json files for parsing"""
     if isinstance(filenames, str):
         filenames = [filenames]
 
@@ -61,8 +86,8 @@ def get_strings_from_jsons(filenames: Union[str, List[str]], filepath: Optional[
     return json_strings.copy()
 
 
-def get_result_obj_from_strings(json_strings: Union[str, List[str]],
-                                result_obj_type: Type[BaseResultsData]) -> List[BaseResultsData]:
+def _get_result_obj_from_strings(json_strings: Union[str, List[str]],
+                                 result_obj_type: Type[BaseResultsData]) -> List[BaseResultsData]:
     """ implements parsing of json-formatted string to specified ResultData object """
     if isinstance(json_strings, str):
         json_strings = [json_strings]

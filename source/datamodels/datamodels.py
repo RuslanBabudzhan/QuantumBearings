@@ -1,231 +1,122 @@
 """
-TODO: Rewrite fileds types to complex data type
+
 This module implements models of data, used for ML experiments results tracking
 
 """
 
-from typing import List
-from enum import Enum
-from abc import ABC, abstractmethod
+# TODO: Add validation for fields with enumerators
+# TODO: Add validation for length equality of arrays
 
-import numpy as np
-from pydantic import BaseModel
+from typing import List, Dict, Optional
+from abc import ABC
 
-from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
-from sklearn.svm import SVC
-from sklearn.linear_model import LogisticRegression
+from pydantic import BaseModel, Field
 
-
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn import feature_selection
-
-from source.datamodels import metrics, statistics
+from source.datamodels.iterators import Axes, Stats, Metrics
 
 
-class BaseResultsData(ABC, BaseModel):  # TODO: add z-stat
-    """ Class implements abstract model of data obtained as a result of ML algorithm launch """
-    run_label: str  # Label assigned to the result
-    model_name: str  # Name of the model (GBM, RF, etc.). Use Model.<model>.n
-    hyperparameters: dict  # dict with hyperparameters names as keys and hyperparameters values as values
+class BaseResultsData(ABC, BaseModel):
+    """ Abstract model of data obtained as a result of ML algorithm launch """
+    run_label: str = Field(metadata=dict(short_description="Run label", to_csv=True, printable=True, enumerator=None,
+                                         long_description="Label assigned to the result"))
+    model_name: str = Field(metadata=dict(short_description="ML model", to_csv=True, printable=True, enumerator=None,
+                                          long_description="Name of the model (GBM, RF, etc.)"))
+    hyperparameters: dict = Field(metadata=dict(short_description="Hyperparameters", to_csv=True,
+                                                printable=False, enumerator=None, long_description="dict with "
+                                                "hyperparameters names as keys and hyperparameters values as values"))
 
-    use_signal: bool  # Was raw signal data used in training
-    use_specter: bool  # Was specter of signal used in training
-    use_z_stat: bool  # Was data scaled to z-statistic
-    axes: List[str]  # Which axes were used in training. Use Axes.<axis>.name
-    stats: List[str]  # Which statistics were used in training. Use Stats.<stat>.name
+    use_signal: bool = Field(metadata=dict(short_description="Was signal used", to_csv=True, printable=True,
+                                           enumerator=None, long_description="Was raw signal data used in training"))
+    use_specter: bool = Field(metadata=dict(short_description="Was specter used", to_csv=True, printable=True,
+                                            enumerator=None, long_description="Was specter of signal used in training"))
+    specter_threshold: Optional[int] = Field(default_factory=None, metadata=dict(short_description="Specter threshold",
+                                             printable=True, enumerator=None, to_csv=True,
+                                             long_description="Max frequency in signal specter"))
 
-    dim_reducing: bool  # was dim reducing used before training
-    dim_reducing_method: str  # method of dimensionality reduction
-    selected_features_ids: List[int]  # indices of features returned by DimReducingMethod and selected for training
+    axes: List[str] = Field(metadata=dict(short_description="Axes", to_csv=True, printable=False,
+                                          enumerator=Axes, long_description="Which axes were used in training. "
+                                                                            "Use Axes.<axis>.name"))
+    stats: List[str] = Field(metadata=dict(short_description="Statistics", to_csv=True, printable=False,
+                                           enumerator=Stats, long_description="Which statistics were used in training. "
+                                                                              "Use Stats.<stat>.name"))
 
-    train_brg_id: List[int]  # Bearing indices used in training
-    test_brg_id: List[int]  # Bearing indices used in testing
-    predictions: List[float]  # Prediction for each bearing in Test_brg_id
+    predictions: List[float] = Field(metadata=dict(short_description="Model predictions", to_csv=False, printable=False,
+                                                   enumerator=None, long_description="Prediction for each test sample"))
+    scores: Dict[str, float] = Field(metadata=dict(short_description="Scores", to_csv=True, printable=True,
+                                                   enumerator=Metrics, long_description=" Dict of scores (direct/mean),"
+                                                   " for keys use Metrics.<metric>.name"))
 
-    accuracy_score: float  # test accuracy score
-    precision_score: float  # test precision score
-    recall_score: float  # test recall score
-    f1_score: float  # test f1 score
-
-    @abstractmethod
     def __str__(self):
-        """implementation of human-readable representation of ResultsData objects"""
-        return
+        result_string = ""
+        for field_name, field in zip(self.__fields__.keys(), self.__fields__.values()):
+            field_metadata = field.field_info.extra['metadata']
+            if field_metadata['printable']:
+                value = getattr(self, field_name)
+                result_string += f"{field_metadata['short_description']}: {str(value)}\n"
+        return result_string
 
 
 class SingleRunResults(BaseResultsData):
     """ Model of data obtained as a result of single ML algorithm launch """
-    def __str__(self):
-        """implementation of human-readable representation of the object"""
-        str_representation = f"Result name: {self.run_label}\n" \
-                             f"ML model: {self.model_name}\n" \
-                             f"Hyperparameters: {self.hyperparameters}\n" \
-                             f"Trained on signal data: {self.use_signal}\n" \
-                             f"Trained on specter data: {self.use_specter}\n" \
-                             f"Bearing signal axes: {self.axes}\n" \
-                             f"Statistics for features generation: {self.stats}\n" \
-                             f"Method of dimensionality reducing: {self.dim_reducing_method}\n" \
-                             f"Scores: accuracy = {self.accuracy_score:.3f}, precision = {self.precision_score:.3f}, " \
-                             f"recall = {self.recall_score:.3f}, F1 = {self.f1_score:.3f}"
-        return str_representation
+    train_brg_id: List[int] = Field(metadata=dict(short_description="Train ID", to_csv=False, printable=False,
+                                                  enumerator=None, long_description="Bearings IDs in train subsample"))
+    test_brg_id: List[int] = Field(metadata=dict(short_description="Test ID", to_csv=False, printable=False,
+                                                 enumerator=None, long_description="Bearings IDs in test subsample"))
 
 
-class SingleDatasetsComparisonResults(BaseResultsData):
+class SingleDatasetsComparisonResults(SingleRunResults):
     """ Model of data obtained as a result of datasets comparison for one fitting of ML model."""
-    train_dataset_name: str  # dataset used for train
-    test_dataset_name: str  # dataset used for test
-    TPR_score: float  # TPR score on test set
-    TNR_score: float  # TNR score on test set
-
-    def __str__(self):
-        """implementation of human-readable representation of the object"""
-        str_representation = f"Result name: {self.run_label}\n" \
-                             f"ML model: {self.model_name}\n" \
-                             f"Train dataset: {self.train_dataset_name}\n" \
-                             f"Test dataset: {self.train_dataset_name}\n" \
-                             f"Hyperparameters: {self.hyperparameters}\n" \
-                             f"Trained on signal data: {self.use_signal}\n" \
-                             f"Trained on specter data: {self.use_specter}\n" \
-                             f"Bearing signal axes: {self.axes}\n" \
-                             f"Statistics for features generation: {self.stats}\n" \
-                             f"Method of dimensionality reducing: {self.dim_reducing_method}\n" \
-                             f"Scores: accuracy = {self.accuracy_score:.3f}, precision = {self.precision_score:.3f}, " \
-                             f"recall = {self.recall_score:.3f}, F1 = {self.f1_score:.3f},  " \
-                             f"TPR = {self.TPR_score:.3f},  F1 = {self.TNR_score:.3f}"
-        return str_representation
-
-
-class KFoldGridSearchResults(BaseResultsData):
-    """ Model of data obtained as a result of KFold model tuning """
-    hyperparameters_grid: dict  # dict with hyperparameters names as keys and lists of hyperparameters values as values
-    cv_count: int  # folds number
-
-    accuracy_val_score: float  # mean validation accuracy score of best estimator
-    precision_val_score: float  # mean validation precision score of best estimator
-    recall_val_score: float  # mean validation recall score of best estimator
-    f1_val_score: float  # mean validation f1 score of best estimator
-
-    def __str__(self):
-        """implementation of human-readable representation of the object"""
-        str_representation = f"Result name: {self.run_label}\n" \
-                             f"ML model: {self.model_name}\n" \
-                             f"Count of folds: {self.cv_count}\n" \
-                             f"Hyperparameters of best model: {self.hyperparameters}\n" \
-                             f"Trained on signal data: {self.use_signal}\n" \
-                             f"Trained on specter data: {self.use_specter}\n" \
-                             f"Bearing signal axes: {self.axes}\n" \
-                             f"Statistics for features generation: {self.stats}\n" \
-                             f"Method of dimensionality reducing: {self.dim_reducing_method}\n" \
-                             f"Scores: accuracy = {self.accuracy_score:.3f}, precision = {self.precision_score:.3f}, " \
-                             f"recall = {self.recall_score:.3f}, F1 = {self.f1_score:.3f}"
-        return str_representation
+    train_dataset_name: str = Field(metadata=dict(short_description="Train DF", to_csv=True, printable=True,
+                                                  enumerator=None, long_description="Dataset used for train"))
+    test_dataset_name: str = Field(metadata=dict(short_description="Test DF", to_csv=True, printable=True,
+                                                 enumerator=None, long_description="Dataset used for test"))
+    signal_scaler: str = Field(metadata=dict(short_description="Scaler", to_csv=True, printable=True, enumerator=None,
+                                             long_description=" Scaler of raw data. Use Scalers.<scaler>.name"))
 
 
 class BootstrapResults(BaseResultsData):
     """ Model of data obtained as a result of Bootstrap over single ML algorithm """
-    resampling_number: int  # number of .fit() calls for the model
+    resampling_number: int = Field(metadata=dict(short_description="Resamples", to_csv=True, printable=True,
+                                                 enumerator=None, long_description=" number of model fits"))
 
-    train_brg_id: List[List[int]]  # Bearing indices used in training for each resampling
-    test_brg_id: List[List[int]]  # Bearing indices used in testing for each resampling
-    predictions: List[List[bool]]  # Prediction for each bearing in Test_brg_id
-
-    accuracy_score: List[float]  # list of test accuracy score for each resampling
-    precision_score: List[float]  # test precision score for each resampling
-    recall_score: List[float]  # test recall score for each resampling
-    f1_score: List[float]  # test f1 score for each resampling
-
-    def __str__(self):
-        """implementation of human-readable representation of the object"""
-        str_representation = f"Result name: {self.run_label}\n" \
-                             f"ML model: {self.model_name}\n" \
-                             f"Count of resamplings: {self.resampling_number}\n" \
-                             f"Hyperparameters: {self.hyperparameters}\n" \
-                             f"Trained on signal data: {self.use_signal}\n" \
-                             f"Trained on specter data: {self.use_specter}\n" \
-                             f"Bearing signal axes: {self.axes}\n" \
-                             f"Statistics for features generation: {self.stats}\n" \
-                             f"Method of dimensionality reducing: {self.dim_reducing_method}\n" \
-                             f"Mean scores: accuracy = {np.mean(self.accuracy_score):.3f}, " \
-                             f"precision = {np.mean(self.precision_score):.3f}, " \
-                             f"recall = {np.mean(self.recall_score):.3f}, " \
-                             f"F1 = {np.mean(self.f1_score):.3f}"
-        return str_representation
+    predictions: List[List[float]] = Field(metadata=dict(short_description="Predictions", to_csv=False,
+                                                         printable=False, enumerator=None, long_description="Prediction"
+                                                         " for each test sample in each resampling"))
+    bootstrap_scores: Dict[str, List[float]] = Field(metadata=dict(short_description="Scores", to_csv=True,
+                                                                   printable=True, enumerator=Metrics,
+                                                                   long_description="Dict of scores for each "
+                                                                   "resampling, for keys use Metrics.<metric>.name"))
 
 
-class Models(Enum):
-    """Enumerated estimators"""
-    # TODO: Add more models
-    GBM = GradientBoostingClassifier
-    RF = RandomForestClassifier
-    SVC = SVC
-    LR = LogisticRegression
-    KNN = KNeighborsClassifier
+class BootstrapFeatureSelectionResults(BaseResultsData):
+    """ Bootstrap to perform feature selection experiment """
+    selector_name: str = Field(metadata=dict(short_description="Selector", to_csv=True, printable=True, enumerator=None,
+                                             long_description="Name of features selector method"))
+    selector_model_name: Optional[str] = Field(default_factory="", metadata=dict(short_description="Selector model",
+                                                                                 printable=True, enumerator=None,
+                                                                                 to_csv=True, long_description="Name of"
+                                                                                 " ML model (if required)"))
 
-    @staticmethod
-    def get_keys() -> List[str]:
-        return list(map(lambda c: c.name, Models))
+    selector_model_hyperparameters: dict = Field(default_factory={}, metadata=dict(short_description="Hyperparameters "
+                                                 "of ML model", to_csv=True, printable=False, enumerator=None,
+                                                 long_description="dict with selector hyperparameters names as keys and"
+                                                 " hyperparameters values as values"))
 
+    ranked_features_id: List[int] = Field(metadata=dict(short_description="Ranked features", to_csv=False,
+                                                        printable=False, enumerator=None, long_description="List of "
+                                                        "features sorted by the splitter in descending order of "
+                                                        "importance"))
 
-class Axes(Enum):
-    """Enumerated axes from raw signals dataset (bearing_signals.csv)"""
-    a1_x = 4  # column index from dataset
-    a1_y = 5
-    a1_z = 6
-    a2_x = 7
-    a2_y = 8
-    a2_z = 9
-
-    @staticmethod
-    def get_keys() -> List[str]:
-        return list(map(lambda c: c.name, Axes))
+    threshold: int = Field(metadata=dict(short_description="Features rank threshold", to_csv=False, printable=False,
+                                         enumerator=None, long_description=" id of last important feature"))
 
 
-class Stats(Enum):
-    """
-    Enumerated statistics to use in data preparation.
-
-    Uses only statistics.py implementations of statistics
-    """
-    mean = statistics.Mean
-    std = statistics.STD
-    kurtosis = statistics.Kurtosis
-    skew = statistics.Skew
-    variation = statistics.Variation
-    range = statistics.StatRange
-    iqr = statistics.IQR
-    sample_entropy = statistics.SampleEntropy
-    shannon_entropy = statistics.ShannonEntropy
-    energy = statistics.Energy
-    hurst = statistics.Hurst
-    petrosian_fd = statistics.PetrosianFD
-    zero_crossing = statistics.ZeroCrossing
-    higuchi_fd = statistics.HiguchiFD
-    activity = statistics.Activity
-    complexity = statistics.Complexity
-    crest_factor = statistics.CrestFactor
-
-    @staticmethod
-    def get_keys() -> List[str]:
-        return list(map(lambda c: c.name, Stats))
+class GridSearchResults(BootstrapResults):
+    """ Model of data obtained as a result of model tuning """
+    hyperparameters_grid: dict = Field(metadata=dict(short_description="Search grid", to_csv=False, printable=False,
+                                                     enumerator=None, long_description="dict with hyperparameters names"
+                                                     " as keys and lists of hyperparameters values as values"))
 
 
-class DimReducers(Enum):
-    """Enumerated dimensionality reduces to use before fitting the model"""
-    # TODO: Add more reducers
-    RFE = feature_selection.RFE
-
-    @staticmethod
-    def get_keys() -> List[str]:
-        return list(map(lambda c: c.name, DimReducers))
-
-
-class Metrics(Enum):
-    """Enumerated metrics"""
-    accuracy = metrics.Accuracy
-    precision = metrics.Precision
-    recall = metrics.Recall
-    f1 = metrics.F1
-
-    @staticmethod
-    def get_keys() -> List[str]:
-        return list(map(lambda c: c.name, Metrics))
+class BootstrapDatasetsComparisonResults(SingleDatasetsComparisonResults, BootstrapResults):
+    """ Model of data obtained as a result of datasets comparison for fitting of ML model with bootstrap resampling."""
