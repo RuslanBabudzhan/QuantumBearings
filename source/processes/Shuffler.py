@@ -46,7 +46,7 @@ class OverlapGroupCV():
         id_train_array, id_test_array = [], []
 
         # Separate defected and new bearings id
-        status = pd.DataFrame([y, groups]).T 
+        status = pd.DataFrame([list(y), list(groups)]).T
         id_0 = status[status[0] == 0][1].unique()
         id_1 = status[status[0] == 1][1].unique()
 
@@ -97,7 +97,7 @@ class PresplitedOverlapGroupCV():
 
         id_train_array, id_test_array = [], []
 
-        status = pd.DataFrame([y, groups]).T
+        status = pd.DataFrame([list(y), list(groups)]).T
 
         for _ in range(self.n_repeats):
             
