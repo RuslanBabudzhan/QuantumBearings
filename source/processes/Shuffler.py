@@ -43,8 +43,6 @@ class OverlapGroupCV():
             "Length of the predictors is not"
             "matching with the groups.")
 
-        id_train_array, id_test_array = [], []
-
         # Separate defected and new bearings id
         status = pd.DataFrame([list(y), list(groups)]).T
         id_0 = status[status[0] == 0][1].unique()
@@ -65,11 +63,7 @@ class OverlapGroupCV():
             id_test = status[status[1].map(
                 lambda x: x in id_test)].index.to_list()
 
-            id_train_array.append(id_train), id_test_array.append(id_test)
-
-        # Generator
-        for train, test in zip(id_train_array, id_test_array):
-            yield train, test
+            yield id_train, id_test
         
     def get_n_splits(self,
                      X: Union[pd.DataFrame, np.ndarray] = None,
@@ -95,8 +89,6 @@ class PresplitedOverlapGroupCV():
               train_groups: Union[pd.DataFrame, np.ndarray],
               test_groups: Union[pd.DataFrame, np.ndarray]) -> Generator:
 
-        id_train_array, id_test_array = [], []
-
         status = pd.DataFrame([list(y), list(groups)]).T
 
         for _ in range(self.n_repeats):
@@ -111,11 +103,7 @@ class PresplitedOverlapGroupCV():
             subset_test_id = status[status[1].map(
                 lambda x: x in id_test)].index.to_list()
 
-            id_train_array.append(subset_train_id), id_test_array.append(subset_test_id)
-
-        # Generator
-        for train, test in zip(id_train_array, id_test_array):
-            yield train, test
+            yield subset_train_id, subset_test_id
         
     def get_n_splits(self,
                      X: Union[pd.DataFrame, np.ndarray] = None,
