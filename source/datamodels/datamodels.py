@@ -80,9 +80,10 @@ class BootstrapResults(BaseResultsData):
     resampling_number: int = Field(metadata=dict(short_description="Resamples", to_csv=True, printable=True,
                                                  enumerator=None, long_description=" number of model fits"))
 
-    predictions: List[List[float]] = Field(metadata=dict(short_description="Predictions", to_csv=False,
-                                                         printable=False, enumerator=None, long_description="Prediction"
-                                                         " for each test sample in each resampling"))
+    predictions: Optional[List[List[float]]] = Field(default_factory=None,
+                                                     metadata=dict(short_description="Predictions", to_csv=False,
+                                                     printable=False, enumerator=None, long_description="Prediction"
+                                                     " for each test sample in each resampling"))
     bootstrap_scores: Dict[str, List[float]] = Field(metadata=dict(short_description="Scores", to_csv=True,
                                                                    printable=True, enumerator=Metrics,
                                                                    long_description="Dict of scores for each "
