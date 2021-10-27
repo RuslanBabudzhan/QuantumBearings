@@ -32,15 +32,15 @@ class Converter:
             for key, col in zip(exp.keys(), ['a1_y', 'a2_y']):
                 rec_df[col] = pd.DataFrame(exp[key])
 
-            rec_df['target'], rec_df['rpm'], rec_df['experiment_id'] = record.split('_')[4], record.split('_')[1], int(
-                record.split('_')[0])
+            rec_name = record.split('_')
+            rec_df['target'], rec_df['rpm'], rec_df['experiment_id'] = rec_name[4], rec_name[1], int(rec_name[0])
             time = int(len(rec_df) / sample_rate)
             rec_df['timestamp'] = np.linspace(0, time, sample_rate * time)
             data = pd.concat([data, rec_df], axis=0)
 
-        data['target'] = np.where(data['target'] == 'F0', 1, 0)  # List
+        data['target'] = np.where(data['target'] == 'F0', 1, 0)
 
-        return data.reset_index(inplace=False)
+        return data.reset_index(drop=True)
 
     @classmethod
     def luigi_convert(cls, path: str) -> pd.DataFrame:
@@ -67,4 +67,4 @@ class Converter:
 
         data['target'] = np.where(data['target'] == 'C0A', 1, 0)
 
-        return data.reset_index(inplace=False)
+        return data.reset_index(drop=True)
