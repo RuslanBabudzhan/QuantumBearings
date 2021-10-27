@@ -90,7 +90,7 @@ class BootstrapResults(BaseResultsData):
                                                                    "resampling, for keys use Metrics.<metric>.name"))
 
 
-class BootstrapFeatureSelectionResults(BaseResultsData):
+class BootstrapFeatureSelectionResults(BootstrapResults):
     """ Bootstrap to perform feature selection experiment """
     selector_name: str = Field(metadata=dict(short_description="Selector", to_csv=True, printable=True, enumerator=None,
                                              long_description="Name of features selector method"))
