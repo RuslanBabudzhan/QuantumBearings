@@ -1,5 +1,5 @@
 """
-# TODO: rewrite results converter
+
 Module implements serialization and deserialization of Results objects (from source.datamodels.datamodels)
 
 Use serialize_result to serialize Result object
@@ -7,7 +7,6 @@ Use serialize_result to serialize Result object
 Use deserialize_result to deserialize Result objects
 
 """
-
 
 import json
 import re
@@ -21,38 +20,46 @@ from source.datamodels.datamodels import BaseResultsData
 
 class EnhancedJSONEncoder(json.JSONEncoder):
     """Used for serialization of pydantic`s dataclasses objects"""
+
     def default(self, o):
         if dataclasses.is_dataclass(o):
             return dataclasses.asdict(o)
         return super().default(o)
 
 
-def serialize_result(result: Union[BaseResultsData, dict], filename: str, filepath: Optional[str] = None):
+def serialize_results(results: Union[BaseResultsData, List[BaseResultsData]],
+                      filenames: Union[str, List[str]], filepath: Optional[str] = None):
     """
     implements Results object serialization
-    :param result: pydantic object or dictionary represents results of ML experiment
-    :param filename: name of *.json file
-    :param filepath: path of *.json file
+    :param results: pydantic objects results of ML experiment
+    :param filenames: names of *.json files
+    :param filepath: path to *.json files
     :return: None
     """
-    if not bool(re.search("\.json$", filename)):
-        raise ValueError(f'log file name must be in *.json format. Got {filename}')
+
+    if isinstance(filenames, str):
+        filenames = [filenames]
+    if isinstance(results, BaseResultsData):
+        results = [results]
+    for filename in filenames:
+        if not bool(re.search("\.json$", filename)):
+            raise ValueError(f'file name must be in *.json format. Got {filename}')
     if filepath and not bool(re.search("/$", filepath)):
         raise ValueError(f'path must end with "/" symbol.')
 
-    if not isinstance(result, dict):
+    for result, filename in zip(results, filenames):
         result = result.dict()
-    if filepath:
-        fullname = f"{filepath}{filename}"
-    else:
-        fullname = f"{filename}"
-    with open(fullname, "w") as write_file:
-        json.dump(result, write_file, cls=EnhancedJSONEncoder)
+        if filepath:
+            fullname = f"{filepath}{filename}"
+        else:
+            fullname = f"{filename}"
+        with open(fullname, "w") as write_file:
+            json.dump(result, write_file, cls=EnhancedJSONEncoder)
 
 
-def deserialize_result(filenames: Union[str, List[str]],
-                       result_obj_type: Type[BaseResultsData],
-                       filepath: Optional[str] = None) -> List[BaseResultsData]:
+def deserialize_results(filenames: Union[str, List[str]],
+                        result_obj_type: Type[BaseResultsData],
+                        filepath: Optional[str] = None) -> List[BaseResultsData]:
     """
     implements Results object deserialization
     :param filenames: names of *.json files that need to be deserialized

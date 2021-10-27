@@ -1,6 +1,8 @@
 from typing import List
 from enum import Enum
 
+from sklearn.metrics import make_scorer
+
 from source.datamodels import metrics, statistics
 
 
@@ -63,3 +65,14 @@ class Metrics(Enum):
     @staticmethod
     def get_keys() -> List[str]:
         return list(map(lambda c: c.name, Metrics))
+
+    @staticmethod
+    def get_scorers_dict() -> dict:
+        """
+        scores dict needs to use in cross_validate
+        :return: dict of score names as keys and scorers functions as values
+        """
+        scores_dict = dict()
+        for metric in Metrics:
+            scores_dict[metric.name] = make_scorer(metric.value.score_func)
+        return scores_dict
