@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from source.preprocessing.basesplitter import BaseSplitter
-
+# TODO: ValueError for stable_area as a list of tuples
 
 class Splitter(BaseSplitter):
     DATA_REQUIRED_COLUMNS = ['target', 'experiment_id', 'timestamp']
