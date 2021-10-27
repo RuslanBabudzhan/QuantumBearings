@@ -43,7 +43,6 @@ class BaseSplitter(ABC):
     @abstractmethod
     def split_dataset(self,
                       dataset: pd.DataFrame,
-                      targets: pd.DataFrame,
                       stable_area: Optional[List[Tuple[int, int]]] = None,
                       splits_number: int = 10,
                       signal_data_columns: List[str] = None) -> np.ndarray:
@@ -51,32 +50,6 @@ class BaseSplitter(ABC):
         Split dataset by chunks and return dataset with statistics of the chunks
         """
         pass
-
-    def _split_single_experiment(self, experiment, targets, dataset):
-        """
-        split by chunks one experiment records from whole experiments dataset
-        :param experiment: experiment ID
-        :param targets: targets dataset
-        :param dataset: whole dataset to extract experiment data
-        :return: statistics array with shape (splits, statistics) for of one splited experiment
-        """
-        target = targets[targets['bearing_id'] == experiment]['status'].values[0]
-        experiment_data = dataset[dataset['experiment_id'] == experiment]
-        batch_time_range = (self.stable_area[0][1] - self.stable_area[0][0]) / self.splits_number
-        experiment_prepared_vectors = []
-        for split in range(self.splits_number):
-
-            batch = experiment_data[self.stable_area[0][0] + split * batch_time_range < experiment_data['timestamp']]
-            batch = batch[batch['timestamp'] < self.stable_area[0][0] + (split + 1) * batch_time_range]
-
-            cleaned_vector = [target]
-
-            for frequency_column in self.signal_data_columns:
-                frequency_data = batch[frequency_column]
-                prepared_data = self._get_data_statistics(frequency_data.to_numpy())
-                cleaned_vector.extend(*prepared_data)
-            experiment_prepared_vectors.append(cleaned_vector)
-        return experiment_prepared_vectors
 
     def _get_data_statistics(self, raw_data: np.ndarray):
         data = raw_data
@@ -100,4 +73,3 @@ class BaseSplitter(ABC):
 
         prepared = np.array(statistics_matrix).T
         return prepared
-

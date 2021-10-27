@@ -2,25 +2,21 @@ from typing import Tuple, List, Optional
 
 import numpy as np
 import pandas as pd
-from scipy import fft
 
 from source.preprocessing.basesplitter import BaseSplitter
 
 
 class Splitter(BaseSplitter):
-    DATA_REQUIRED_COLUMNS = ['experiment_id', 'timestamp']
-    TARGET_REQUIRED_COLUMNS = ['bearing_id', 'status']
+    DATA_REQUIRED_COLUMNS = ['target', 'experiment_id', 'timestamp']
 
     def split_dataset(self,
                       dataset: pd.DataFrame,
-                      targets: pd.DataFrame,
                       stable_area: Optional[List[Tuple[int, int]]] = None,
                       splits_number: int = 10,
                       signal_data_columns: List[str] = None) -> pd.DataFrame:
         """
         Split dataset by chunks and return dataset with statistics of the chunks
         :param dataset: dataset with signals data
-        :param targets: dataset with bearings status
         :param stable_area: list of time intervals in which the signal is stable and must be processed
         :param splits_number: into how many sections it needs to divide the signal of one experiment
         :param signal_data_columns: names of dataset columns, that contain signal data
@@ -40,10 +36,6 @@ class Splitter(BaseSplitter):
         for column in required_data_columns:
             if column not in dataset.columns:
                 raise ValueError(f"dataset must have {column} column")
-
-        for column in Splitter.TARGET_REQUIRED_COLUMNS:
-            if column not in targets.columns:
-                raise ValueError(f"target must have {column} column")
 
         experiments_indices = dataset['experiment_id'].unique()
 
@@ -73,8 +65,9 @@ class Splitter(BaseSplitter):
             features_matrices.append(stat_data)
 
         prepared_dataset = np.hstack(features_matrices)
-        needed_targets = targets[targets['bearing_id'].isin(experiments_indices)]
-        targets_vector = needed_targets['status'].to_numpy().repeat(self.splits_number).reshape(-1, 1)
+        targets = dataset[['experiment_id', 'target']].groupby('experiment_id', as_index=False).max()
+        needed_targets = targets[targets['experiment_id'].isin(experiments_indices)]
+        targets_vector = needed_targets['target'].to_numpy().repeat(self.splits_number).reshape(-1, 1)
         groups_vector = experiments_indices.repeat(self.splits_number).reshape(-1, 1)
         prepared_dataset = np.hstack([targets_vector, groups_vector, prepared_dataset])
 
@@ -98,4 +91,3 @@ class Splitter(BaseSplitter):
         dataset_columns.extend(signals_stats_columns)
         prepared_dataset = pd.DataFrame(prepared_dataset, columns=dataset_columns)
         return prepared_dataset
-
