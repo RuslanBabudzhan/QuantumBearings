@@ -58,7 +58,7 @@ class OverlapGroupCV(Shuffler):
 class PresplitedOverlapGroupCV(Shuffler):
 
     def split(self,
-               labels: Union[pd.DataFrame, np.ndarray]):
+              labels: Union[pd.DataFrame, np.ndarray]):
         
         # id_sub_array= []
         
