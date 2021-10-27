@@ -66,21 +66,3 @@ class PresplitedOverlapGroupCV(Shuffler):
             # id_sub_array.append(id_sub)
 
             yield id_sub
-
-
-data_labels = pd.read_csv('Data/bearing_classes.csv', sep=";") # load bearings labeles
-
-labels_big_0 = data_labels.iloc[1:31] # old big bearings id
-labels_big_1 = data_labels.iloc[101:108] # new big bearings id
-
-labels_small_0 = data_labels.iloc[31:101] # old small bearings id
-labels_small_1 = data_labels.iloc[108:] # new small bearings id
-
-bear_id_0 = pd.concat([labels_big_0, labels_small_0]) # all old bearings id
-bear_id_1 = pd.concat([labels_big_1, labels_small_1]) # all new bearings id
-
-shuffle_1 = OverlapGroupCV(0.8, n_repeats=1)
-shuffle_2 = PresplitedOverlapGroupCV(0.8, n_repeats=1)
-
-bear_id_train, bear_id_test = shuffle_1.split(bear_id_0.bearing_id, bear_id_1.bearing_id) # get 100 train\test id splits
-subset = shuffle_1.split(bear_id_0.bearing_id) # get 100 different id subsets
