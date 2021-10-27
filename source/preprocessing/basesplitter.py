@@ -17,6 +17,11 @@ class BaseSplitter(ABC):
                  specter_threshold: Optional[int] = None):
         """
         Class implements chunk splittings of bearings_signals.csv dataset with subsequent processing of chunks
+        :param stats: list of statistics names, that will be calculated for each chunk for each dataset column
+        :param use_signal: Either to use data of raw signals to generate features list or not
+        :param use_specter: Either to use fft of raw signal to generate features list or not
+        :param scaler: scaler with .fit_transform() method or None. Used for signal scaling
+        :param specter_threshold: maximum frequency in Hz to calculate statistics if use_specter = True
         """
         self.use_signal = use_signal
         self.use_specter = use_specter
@@ -46,9 +51,6 @@ class BaseSplitter(ABC):
                       stable_area: Optional[List[Tuple[int, int]]] = None,
                       splits_number: int = 10,
                       signal_data_columns: List[str] = None) -> np.ndarray:
-        """
-        Split dataset by chunks and return dataset with statistics of the chunks
-        """
         pass
 
     def _get_data_statistics(self, raw_data: np.ndarray):
