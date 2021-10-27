@@ -7,7 +7,9 @@ from abc import ABC, abstractmethod
 class Shuffler(ABC):
 
     @abstractmethod
-    def split(self):
+    def split(self,
+              id_0: Union[pd.DataFrame, np.ndarray], 
+              id_1: Union[pd.DataFrame, np.ndarray]):
         pass
     
     def __init__(self, 
@@ -21,7 +23,7 @@ class Shuffler(ABC):
 
     def id_shuffler(self, 
                     labels: Union[pd.DataFrame, np.ndarray], 
-                    train_size: float) -> np.ndarray:
+                    train_size: float):
         
         len_size = len(labels)
         N = int(len_size * train_size)
@@ -36,7 +38,7 @@ class OverlapGroupCV(Shuffler):
 
     def split(self, 
               id_0: Union[pd.DataFrame, np.ndarray], 
-              id_1: Union[pd.DataFrame, np.ndarray]) -> np.ndarray:
+              id_1: Union[pd.DataFrame, np.ndarray]):
 
         # id_train_array, id_test_array = [], []
 
@@ -56,7 +58,7 @@ class OverlapGroupCV(Shuffler):
 class PresplitedOverlapGroupCV(Shuffler):
 
     def split(self,
-               labels: Union[pd.DataFrame, np.ndarray]) -> np.ndarray:
+               labels: Union[pd.DataFrame, np.ndarray]):
         
         # id_sub_array= []
         
