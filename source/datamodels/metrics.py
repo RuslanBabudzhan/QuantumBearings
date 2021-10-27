@@ -4,39 +4,39 @@ from sklearn import metrics
 
 class Accuracy:
     @staticmethod
-    def count_stat(y_true, y_predict):
-        return metrics.accuracy_score(y_true, y_predict)
+    def score_func(y, y_pred):
+        return metrics.accuracy_score(y, y_pred)
 
 
 class Precision:
     @staticmethod
-    def count_stat(y_true, y_predict):
-        return metrics.precision_score(y_true, y_predict)
+    def score_func(y, y_pred):
+        return metrics.precision_score(y, y_pred)
 
 
 class Recall:
     @staticmethod
-    def count_stat(y_true, y_predict):
-        return metrics.recall_score(y_true, y_predict)
+    def score_func(y, y_pred):
+        return metrics.recall_score(y, y_pred)
 
 
 class F1:
     @staticmethod
-    def count_stat(y_true, y_predict):
-        return metrics.f1_score(y_true, y_predict)
+    def score_func(y, y_pred):
+        return metrics.f1_score(y, y_pred)
 
 
 class TPR:
     @staticmethod
-    def count_stat(y_true, y_predict):
-        TP = sum(np.array(y_true == y_predict == 1))
-        P = sum(y_true)
+    def score_func(y, y_pred):
+        TP = sum(np.array(y == y_pred == 1))
+        P = sum(y)
         return TP / P
 
 
 class TNR:
     @staticmethod
-    def count_stat(y_true, y_predict):
-        TN = sum(np.array(y_true == y_predict == 0))
-        N = len(y_true) - sum(y_true)
+    def score_func(y, y_pred):
+        TN = sum(np.array(y == y_pred == 0))
+        N = len(y) - sum(y)
         return TN/N

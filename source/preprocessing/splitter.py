@@ -17,7 +17,8 @@ class Splitter(BaseSplitter):
         """
         Split dataset by chunks and return dataset with statistics of the chunks
         :param dataset: dataset with signals data
-        :param stable_area: list of time intervals in which the signal is stable and must be processed
+        :param stable_area: list of time intervals in which the signal is stable and must be processed.
+            The intervals must fall within the values of 'timestamp' dataset column
         :param splits_number: into how many sections it needs to divide the signal of one experiment
         :param signal_data_columns: names of dataset columns, that contain signal data
         :return: dataframe with statistics of signals
