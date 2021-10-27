@@ -29,7 +29,7 @@ class F1:
 class TPR:
     @staticmethod
     def score_func(y, y_pred):
-        TP = sum(np.array(y == y_pred == 1))
+        TP = np.sum(np.logical_and(np.equal(y, y_pred), np.equal(y, 1)).astype(int))
         P = sum(y)
         return TP / P
 
@@ -37,6 +37,6 @@ class TPR:
 class TNR:
     @staticmethod
     def score_func(y, y_pred):
-        TN = sum(np.array(y == y_pred == 0))
+        TN = np.sum(np.logical_and(np.equal(y, y_pred), np.equal(y, 0)).astype(int))
         N = len(y) - sum(y)
         return TN/N
