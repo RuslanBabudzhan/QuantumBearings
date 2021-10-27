@@ -72,9 +72,9 @@ class OverlapGroupCV():
             yield train, test
         
     def get_n_splits(self,
-                        X: Union[pd.DataFrame, np.ndarray] = None,
-                        y: Union[pd.DataFrame, np.ndarray] = None,
-                        groups: Union[pd.DataFrame, np.ndarray] = None):
+                     X: Union[pd.DataFrame, np.ndarray] = None,
+                     y: Union[pd.DataFrame, np.ndarray] = None,
+                     groups: Union[pd.DataFrame, np.ndarray] = None):
         return self.n_repeats
 
 
@@ -118,7 +118,7 @@ class PresplitedOverlapGroupCV():
             yield train, test
         
     def get_n_splits(self,
-                        X: Union[pd.DataFrame, np.ndarray] = None,
-                        y: Union[pd.DataFrame, np.ndarray] = None,
-                        groups: Union[pd.DataFrame, np.ndarray] = None):
+                     X: Union[pd.DataFrame, np.ndarray] = None,
+                     y: Union[pd.DataFrame, np.ndarray] = None,
+                     groups: Union[pd.DataFrame, np.ndarray] = None):
         return self.n_repeats
