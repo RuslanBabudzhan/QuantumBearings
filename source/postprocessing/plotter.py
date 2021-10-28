@@ -4,7 +4,7 @@ import numpy as np
 import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
-from datamodels.datamodels import BootstrapResults, BaseResultsData
+from source.datamodels.datamodels import BootstrapResults, BaseResultsData
 
 
 def dist_plot(results: Union[BootstrapResults, Dict[str, list]],
