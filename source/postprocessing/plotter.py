@@ -8,6 +8,7 @@ from source.datamodels.datamodels import BootstrapResults, BaseResultsData
 
 
 def dist_plot(results: Union[BootstrapResults, Dict[str, list]],
+              models: List[str],
               plot_type: str,
               metrics: List[str],
               plot_size: Tuple[float, float],
@@ -20,7 +21,7 @@ def dist_plot(results: Union[BootstrapResults, Dict[str, list]],
     else: 
         scores_dict = results
 
-    results_df = pd.DataFrame(scores_dict)[metrics]
+    results_df = pd.DataFrame(list(map(lambda n: n[metrics], scores_dict))).T.set_axis(models, axis=1)
 
     plots = {'kdeplot': sns.kdeplot,
              'boxenplot': sns.boxenplot}
