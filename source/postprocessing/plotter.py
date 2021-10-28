@@ -61,12 +61,20 @@ def bar_plot(results: Union[BaseResultsData, List[Dict[str, float]]],
     
     results_df = pd.concat([scores_df, metrics_df, models_df], axis=1)
     results_df = results_df[results_df['metrics'].isin(metrics)]
-    
-    
-    plt.figure(figsize=plot_size).suptitle(Title)
+
     sns.set(font_scale=1.5)
+    plt.figure(figsize=plot_size).suptitle(Title)
     sns.set_style("darkgrid")
     plot = sns.barplot(x='models', y='scores', hue='metrics', data=results_df)
+
+    for p in plot.patches:
+        plot.annotate(format(p.get_height(), '.2f'), 
+                    (p.get_x() + p.get_width() / 2., p.get_height()), 
+                    ha = 'center', va = 'center', 
+                    size=15,
+                    xytext = (0, -12), 
+                    textcoords = 'offset points')
+
     path = os.path.join(filepath, filename)
     plot.get_figure().savefig(path) 
     plt.show()
