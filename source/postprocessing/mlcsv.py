@@ -16,7 +16,7 @@ import xlsxwriter
 import pandas as pd
 import numpy as np
 
-from source.postprocessing.mljson import deserialize_result
+from source.postprocessing.mljson import deserialize_results
 from source.datamodels.datamodels import BaseResultsData
 
 
@@ -89,7 +89,7 @@ def generate_csv_from_results(results: Union[List[BaseResultsData], List[str]],
     if isinstance(results[0], str):
         if not results_type:
             raise TypeError('"results_type" must be added if "results" represents a list of files names')
-        results_objects = deserialize_result(results, results_type, results_path)
+        results_objects = deserialize_results(results, results_type, results_path)
     else:
         results_objects = results
     results_dicts = []
@@ -124,7 +124,7 @@ def append_results_to_csv(results: Union[List[BaseResultsData], List[str]],
     if isinstance(results[0], str):
         if not results_type:
             raise TypeError('"results_type" must be added if "results" represents a list of files names')
-        results_objects = deserialize_result(results, results_type, results_path)
+        results_objects = deserialize_results(results, results_type, results_path)
     else:
         results_objects = results
     results_dicts = []
