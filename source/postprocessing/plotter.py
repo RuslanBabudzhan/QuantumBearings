@@ -12,7 +12,7 @@ def dist_plot(results: Dict[str, list],
               plot_size: Tuple[float, float],
               Title: str,
               filename: str,
-              filepath: str):
+              filepath: Optional[str]=''):
 
     if isinstance(results, int):
         scores_dict = results.bootstrap_scores
