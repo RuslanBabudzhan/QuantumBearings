@@ -4,7 +4,7 @@ import numpy as np
 import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
-from source.datamodels.datamodels import BootstrapResults, BaseResultsData
+from datamodels.datamodels import BootstrapResults, BaseResultsData
 
 
 def dist_plot(results: Union[BootstrapResults, Dict[str, list]],
@@ -48,7 +48,7 @@ def bar_plot(results: Union[BaseResultsData, List[Dict[str, float]]],
     else: 
         scores_dict = results  
 
-    scores = np.array(list(map(lambda n: list(n.values()), scores_dict)))
+    scores = np.array(list(map(lambda n: list(n.values()), scores_dict)))  
     len_scores = scores.shape[0] * scores.shape[1]
     scores_df = pd.Series(scores.reshape(len_scores), name='scores')
     metrics_df = pd.Series(
@@ -56,11 +56,11 @@ def bar_plot(results: Union[BaseResultsData, List[Dict[str, float]]],
             map(lambda n: list(n.keys()), scores_dict)
                 )).reshape(len_scores), 
                 name = 'metrics')
-    models_df = pd.Series(models, name='models').repeat(len(results)).reset_index(drop=True)
+    models_df = pd.Series(models, name='models').repeat(len(metrics_df)/len(models)).reset_index(drop=True)
     
     results_df = pd.concat([scores_df, metrics_df, models_df], axis=1)
     results_df = results_df[results_df['metrics'].isin(metrics)]
-
+    
     
     plt.figure(figsize=plot_size).suptitle(Title)
     sns.set_style("darkgrid")
