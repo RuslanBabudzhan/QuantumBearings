@@ -1,12 +1,13 @@
 import os
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Dict, Union
 import numpy as np
 import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
+from source.datamodels.datamodels import BootstrapResults, BaseResultsData
 
 
-def dist_plot(results: Dict[str, list],
+def dist_plot(results: Union[BootstrapResults, Dict[str, list]],
               plot_type: str,
               metrics: List[str],
               plot_size: Tuple[float, float],
@@ -14,7 +15,7 @@ def dist_plot(results: Dict[str, list],
               filename: str,
               filepath: Optional[str]=''):
 
-    if isinstance(results, int):
+    if isinstance(results, BootstrapResults):
         scores_dict = results.bootstrap_scores
     else: 
         scores_dict = results
@@ -34,7 +35,7 @@ def dist_plot(results: Dict[str, list],
         plt.show()
 
 
-def hist_plot(results: List[Dict[str, float]],
+def bar_plot(results: Union[BaseResultsData, List[Dict[str, float]]],
               models: List[str],
               metrics: List[str],
               plot_size: Tuple[float, float],
@@ -42,8 +43,8 @@ def hist_plot(results: List[Dict[str, float]],
               filename: str,
               filepath: Optional[str]=''):
     
-    if isinstance(results, int):
-        scores_dict = results.bootstrap_scores
+    if isinstance(results, BaseResultsData):
+        scores_dict = results.scores
     else: 
         scores_dict = results  
 
