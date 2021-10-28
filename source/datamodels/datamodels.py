@@ -6,8 +6,6 @@ This module implements models of data, used for ML experiments results tracking
 
 # TODO: Add validation for fields with enumerators
 # TODO: Add validation for length equality of arrays
-# TODO: Change specter_threshold description
-# TODO: BaseResultsData results optional
 
 from typing import List, Dict, Optional
 from abc import ABC
@@ -42,7 +40,8 @@ class BaseResultsData(ABC, BaseModel):
                                            enumerator=Stats, long_description="Which statistics were used in training. "
                                                                               "Use Stats.<stat>.name"))
 
-    predictions: List[float] = Field(metadata=dict(short_description="Model predictions", to_csv=False, printable=False,
+    predictions: Optional[List[float]] = Field(default_factory=None,
+                                        metadata=dict(short_description="Model predictions", to_csv=False, printable=False,
                                                    enumerator=None, long_description="Prediction for each test sample"))
     scores: Dict[str, float] = Field(metadata=dict(short_description="Scores", to_csv=True, printable=True,
                                                    enumerator=Metrics, long_description=" Dict of scores (direct/mean),"
@@ -72,8 +71,9 @@ class SingleDatasetsComparisonResults(SingleRunResults):
                                                   enumerator=None, long_description="Dataset used for train"))
     test_dataset_name: str = Field(metadata=dict(short_description="Test DF", to_csv=True, printable=True,
                                                  enumerator=None, long_description="Dataset used for test"))
-    signal_scaler: str = Field(metadata=dict(short_description="Scaler", to_csv=True, printable=True, enumerator=None,
-                                             long_description=" Scaler of raw data. Use Scalers.<scaler>.name"))
+    signal_scaler: Optional[str] = Field(default_factory="",
+                                         metadata=dict(short_description="Scaler", to_csv=True, printable=True, enumerator=None,
+                                         long_description=" Scaler of raw data. Use Scalers.<scaler>.name"))
 
 
 class BootstrapResults(BaseResultsData):
