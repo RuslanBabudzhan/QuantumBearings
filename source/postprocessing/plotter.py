@@ -27,9 +27,9 @@ def dist_plot(results: Union[BootstrapResults, Dict[str, list]],
              'boxenplot': sns.boxenplot}
 
     if plot_type in plots.keys():
+        sns.set(font_scale=1.5)
         plt.figure(figsize=plot_size).suptitle(Title)
         sns.set_style("darkgrid")
-        sns.set(font_scale=1.5)
         plot = plots[plot_type](data=results_df)
         path = os.path.join(filepath, filename)
         plot.get_figure().savefig(path) 
@@ -64,8 +64,8 @@ def bar_plot(results: Union[BaseResultsData, List[Dict[str, float]]],
     
     
     plt.figure(figsize=plot_size).suptitle(Title)
-    sns.set_style("darkgrid")
     sns.set(font_scale=1.5)
+    sns.set_style("darkgrid")
     plot = sns.barplot(x='models', y='scores', hue='metrics', data=results_df)
     path = os.path.join(filepath, filename)
     plot.get_figure().savefig(path) 
