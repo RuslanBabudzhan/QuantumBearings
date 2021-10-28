@@ -7,6 +7,7 @@ This module implements models of data, used for ML experiments results tracking
 # TODO: Add validation for fields with enumerators
 # TODO: Add validation for length equality of arrays
 # TODO: Change specter_threshold description
+# TODO: BaseResultsData results optional
 
 from typing import List, Dict, Optional
 from abc import ABC
