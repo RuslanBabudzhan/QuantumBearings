@@ -92,3 +92,22 @@ class Splitter(BaseSplitter):
         dataset_columns.extend(signals_stats_columns)
         prepared_dataset = pd.DataFrame(prepared_dataset, columns=dataset_columns)
         return prepared_dataset
+
+
+from source.datamodels import iterators
+from sklearn.preprocessing import StandardScaler
+import os
+
+# project_folder = "F:/PythonNotebooks/Study/Quantum/Bearings/"
+# own_data_path = os.path.join(project_folder, "data/own datasets/")
+# third_party_data_path = os.path.join(project_folder, "data/third party datasets/")
+# full_dataset_cesar = pd.read_csv(os.path.join(third_party_data_path, 'N1 Cesar Ricardo/csv/bearings.csv'), index_col=0)
+
+# print(full_dataset_cesar['experiment_id'].unique())
+# stats = ['mean']
+# splitter_processor = Splitter(use_signal=True, use_specter=True, specter_threshold=1000, stats=stats, scaler=StandardScaler)
+# prepared_data_cesar = splitter_processor.split_dataset(full_dataset_cesar, stable_area=[(0, 3)], splits_number=10,
+#                                                        signal_data_columns=['a1_y', 'a2_y'])
+# print(f"features number: {prepared_data_cesar.shape[1]-2}")
+# print(f"examples number: {prepared_data_cesar.shape[0]}")
+# print(prepared_data_cesar.head())
