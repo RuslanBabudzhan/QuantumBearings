@@ -121,10 +121,9 @@ def upload_to_Drive(drive_folder_key: str, filepath: Optional[str] = None, filen
     :param drive_folder_key: string. Key to specify folder on Google Drive
     :return: None
     """
-
-    config = configparser.ConfigParser()
     root = get_project_root()
-    config.read(os.path.join(root, "config.ini"))
+    userconfig = configparser.ConfigParser()
+    userconfig.read(os.path.join(root, "userconfig.ini"))
 
     if not filepath:
         print(f"filepath is not given. Search in {root}")
@@ -135,6 +134,8 @@ def upload_to_Drive(drive_folder_key: str, filepath: Optional[str] = None, filen
         if not os.path.isdir(filepath):
             raise ValueError(f"The system cannot find the path {filepath}.")
 
+    config = configparser.ConfigParser()
+    config.read(os.path.join(root, "config.ini"))
     folder_ids = dict()
     for field in config['Drive']:
         folder_ids[field] = config['Drive'][field]
