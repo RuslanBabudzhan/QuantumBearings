@@ -1,6 +1,10 @@
 # ignore configs
 config.ini
 
+# ignore Google Auth data
+source/postprocessing/client_secrets.json
+source/postprocessing/mycreds.txt
+
 # ignore datasets
 data
 
