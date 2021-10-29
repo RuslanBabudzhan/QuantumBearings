@@ -1,0 +1,40 @@
+# ignore configs
+config.ini
+
+# ignore all sandboxes
+Sandboxes
+
+# ignore datasets
+data
+
+# ignore notebooks excluding public
+notebooks
+!notebooks/CompareDatasets.ipynb
+!notebooks/GridSearch.ipynb.ipynv
+!notebooks/UsageExamples.ipynb
+
+# ignore legacy
+source/preprocessing/Features_selection.py
+source/preprocessing/cesars.py
+source/processes/base.py
+source/processes/bootstraps.py
+source/processes/Stats_features.py
+
+# ignore experiments results in json format
+*.json
+
+# ignore images except public
+experiments/images/*
+!experiments/images/public/
+
+# ignore result tables except public
+*.csv
+*.xlsx
+experiments/ResultTables/*
+!experiments/ResultTables/public/
+
+# ignore team files
+/team files/*
+
+# ignore IDE files
+/.idea/*
