@@ -9,17 +9,18 @@ Use deserialize_result to deserialize Result objects
 """
 import os
 import configparser
-
 import json
 import re
 from typing import Union, Optional, List, Type
+
+import pydantic
 import dataclasses
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
-
-import pydantic
+from tqdm import tqdm
 
 from source.datamodels.datamodels import BaseResultsData
+from source.utils import get_project_root
 
 
 class EnhancedJSONEncoder(json.JSONEncoder):
@@ -111,25 +112,38 @@ def _get_result_obj_from_strings(json_strings: Union[str, List[str]],
     return result_objects.copy()
 
 
-def upload_to_Drive(filepath: str, drive_folder_id: str, filenames: Optional[List[str]] = None):
+def upload_to_Drive(drive_folder_key: str, filepath: Optional[str] = None, filenames: Optional[List[str]] = None):
     """
     Uploads files to Google Drive
-    :param drive_folder_id:
-    :param filenames:
-    :param filepath:
-    :return:
+    :param filenames: list of strings, optional. Names of files need to be uploaded. If None, all files from filepath
+        will be uploaded to the drive
+    :param filepath: string, optional. Path to search for files in filenames. If None, Root folder will be used
+    :param drive_folder_key: string. Key to specify folder on Google Drive
+    :return: None
     """
 
     config = configparser.ConfigParser()
-    config.read("F:/PythonNotebooks/Study/Quantum/Bearings/config.ini")
+    root = get_project_root()
+    config.read(os.path.join(root, "config.ini"))
+
+    if not filepath:
+        print(f"filepath is not given. Search in {root}")
+        filepath = root
+
+    if not os.path.isdir(filepath):
+        filepath = os.path.join(root, filepath)
+        if not os.path.isdir(filepath):
+            raise ValueError(f"The system cannot find the path {filepath}.")
+
     folder_ids = dict()
     for field in config['Drive']:
         folder_ids[field] = config['Drive'][field]
-    if drive_folder_id not in set(folder_ids.keys()):
-        raise ValueError(f"Unknown Drive folder. Got {drive_folder_id}. Possible: {set(folder_ids.keys())}")
+    if drive_folder_key not in set(folder_ids.keys()):
+        raise ValueError(f"Unknown Drive folder key. Got: '{drive_folder_key}'. Expected: {set(folder_ids.keys())}")
     if filenames is None:
         filenames = set((file for file in os.listdir(filepath) if os.path.isfile(os.path.join(filepath, file))))
-    folder_id = folder_ids[drive_folder_id]
+        print(f"filenames are not given. All files will be uploaded ({len(filenames)})")
+    folder_id = folder_ids[drive_folder_key]
 
     gauth = GoogleAuth()
     gauth.LoadCredentialsFile("mycreds.txt")
@@ -146,8 +160,10 @@ def upload_to_Drive(filepath: str, drive_folder_id: str, filenames: Optional[Lis
     file_list = drive.ListFile({'q': "'{}' in parents and trashed=false".format(folder_id)}).GetList()
     existing_filenames = [file['title'] for file in file_list]
 
-    for filename in filenames:
+    for filename in tqdm(filenames):
         upload_file = _create_non_duplicating_name(filename, existing_filenames)
+        if upload_file is not filename:
+            print(f"File {filename} already exists in Drive directory. New file saved as {upload_file}")
         gfile = drive.CreateFile({'title': upload_file, 'parents': [{'id': folder_id}]})
         gfile.SetContentFile(os.path.join(filepath, filename))  # os.path.join(filepath, upload_file)
         gfile.Upload(param={'supportsTeamDrives': True})  # Upload the file.
