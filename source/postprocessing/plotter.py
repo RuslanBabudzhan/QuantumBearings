@@ -86,7 +86,7 @@ def bar_plot(results: Union[List[BaseResultsData], List[Dict[str, float]]],
              filename: Optional[str] = None,
              filepath: Optional[str] = ''):
     """
-
+    Plot metric values
     :param results: list of results or dict
     :param models: model names corresponding to each item in results
     :param metrics: metrics to select from results
