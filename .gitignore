@@ -1,5 +1,6 @@
 # ignore configs
 config.ini
+userconfig.ini
 
 # ignore Google Auth data
 source/postprocessing/client_secrets.json
@@ -23,6 +24,7 @@ source/preprocessing/cesars.py
 source/processes/base.py
 source/processes/bootstraps.py
 source/processes/Stats_features.py
+*.pyc
 
 # ignore experiments results in json format
 *.json
