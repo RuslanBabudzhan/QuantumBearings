@@ -1,9 +1,6 @@
 # ignore configs
 config.ini
 
-# ignore all sandboxes
-Sandboxes
-
 # ignore datasets
 data
 
