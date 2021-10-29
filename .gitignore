@@ -4,6 +4,9 @@ config.ini
 # ignore datasets
 data
 
+# ignore all sandboxes
+Sandboxes
+
 # ignore notebooks excluding public
 notebooks
 !notebooks/CompareDatasets.ipynb
