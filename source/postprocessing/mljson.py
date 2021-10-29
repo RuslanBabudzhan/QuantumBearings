@@ -7,11 +7,15 @@ Use serialize_result to serialize Result object
 Use deserialize_result to deserialize Result objects
 
 """
+import os
+import configparser
 
 import json
 import re
 from typing import Union, Optional, List, Type
 import dataclasses
+from pydrive.auth import GoogleAuth
+from pydrive.drive import GoogleDrive
 
 import pydantic
 
@@ -105,3 +109,53 @@ def _get_result_obj_from_strings(json_strings: Union[str, List[str]],
         except pydantic.error_wrappers.ValidationError:
             raise Exception(f"JSON string under index #{string_index} does not match {result_obj_type}")
     return result_objects.copy()
+
+
+def upload_to_Drive(filepath: str, drive_folder_id: str, filenames: Optional[List[str]] = None):
+    """
+    Uploads files to Google Drive
+    :param drive_folder_id:
+    :param filenames:
+    :param filepath:
+    :return:
+    """
+
+    config = configparser.ConfigParser()
+    config.read("F:/PythonNotebooks/Study/Quantum/Bearings/config.ini")
+    folder_ids = dict()
+    for field in config['Drive']:
+        folder_ids[field] = config['Drive'][field]
+    if drive_folder_id not in set(folder_ids.keys()):
+        raise ValueError(f"Unknown Drive folder. Got {drive_folder_id}. Possible: {set(folder_ids.keys())}")
+    if filenames is None:
+        filenames = set((file for file in os.listdir(filepath) if os.path.isfile(os.path.join(filepath, file))))
+    folder_id = folder_ids[drive_folder_id]
+
+    gauth = GoogleAuth()
+    gauth.LoadCredentialsFile("mycreds.txt")
+    if gauth.credentials is None:
+        gauth.LocalWebserverAuth()  # Authenticate if they're not there
+    elif gauth.access_token_expired:
+        gauth.Refresh()  # Refresh them if expired
+    else:
+        gauth.Authorize()  # Initialize the saved creds
+    gauth.SaveCredentialsFile("mycreds.txt")  # Save the current credentials to a file
+
+    drive = GoogleDrive(gauth)
+
+    file_list = drive.ListFile({'q': "'{}' in parents and trashed=false".format(folder_id)}).GetList()
+    existing_filenames = [file['title'] for file in file_list]
+
+    for filename in filenames:
+        upload_file = _create_non_duplicating_name(filename, existing_filenames)
+        gfile = drive.CreateFile({'title': upload_file, 'parents': [{'id': folder_id}]})
+        gfile.SetContentFile(os.path.join(filepath, filename))  # os.path.join(filepath, upload_file)
+        gfile.Upload(param={'supportsTeamDrives': True})  # Upload the file.
+
+
+def _create_non_duplicating_name(filename, existing_names, prefix='copy_'):
+    if filename in existing_names:
+        filename = f"{prefix}{filename}"
+        return _create_non_duplicating_name(filename, existing_names, prefix)
+    else:
+        return filename
