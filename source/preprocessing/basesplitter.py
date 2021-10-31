@@ -68,18 +68,25 @@ class BaseSplitter(ABC):
             fhat = fft.fft(data, n)
             PSD = fhat * np.conj(fhat)/n
             specter_threshold_index = int(self.specter_threshold*(self.delta_time*n))
+            spectrum = PSD[:, :specter_threshold_index].real
 
-            data = [PSD[:, :specter_threshold_index]]
+            data = [spectrum]
         else:
             n = data.shape[1]
             fhat = fft.fft(data, n)
             PSD = fhat * np.conj(fhat)/n
             specter_threshold_index = int(self.specter_threshold*(self.delta_time*n))
-            data = [data, PSD[:, :specter_threshold_index]]
+            spectrum = PSD[:, :specter_threshold_index].real
+
+            data = [data, spectrum]
 
         statistics_matrix = []
         for data_element in data:
             for statistic_function in self.stats.values():
+                print(type(data_element))
+                print(data_element.shape)
+                print(type(data_element[0]))
+                print(type(data_element[0][0]))
                 statistics_vector = statistic_function.count_stat(data_element, axis=1)
                 statistics_matrix.append(statistics_vector)
 
