@@ -83,6 +83,10 @@ class BaseSplitter(ABC):
         statistics_matrix = []
         for data_element in data:
             for statistic_function in self.stats.values():
+                print(type(data_element))
+                print(data_element.shape)
+                print(type(data_element[0]))
+                print(type(data_element[0][0]))
                 statistics_vector = statistic_function.count_stat(data_element, axis=1)
                 statistics_matrix.append(statistics_vector)
 
