@@ -31,6 +31,7 @@ class BaseSplitter(ABC):
         self.splits_number = None
         self.signal_data_columns = None
         self.specter_threshold = specter_threshold
+        self.delta_time = None
 
         full_stats_list = Stats.get_keys()
         if not set(stats).issubset(full_stats_list):
@@ -63,9 +64,18 @@ class BaseSplitter(ABC):
         if self.use_signal and not self.use_specter:
             data = [data]
         elif self.use_specter and not self.use_signal:
-            data = [np.abs(fft.fft(data, axis=1))[:, :self.specter_threshold]]
+            n = data.shape[1]
+            fhat = fft.fft(data, n)
+            PSD = fhat * np.conj(fhat)/n
+            specter_threshold_index = int(self.specter_threshold*(self.delta_time*n))
+
+            data = [PSD[:, :specter_threshold_index]]
         else:
-            data = [data, np.abs(fft.fft(data, axis=0))[:, :self.specter_threshold]]
+            n = data.shape[1]
+            fhat = fft.fft(data, n)
+            PSD = fhat * np.conj(fhat)/n
+            specter_threshold_index = int(self.specter_threshold*(self.delta_time*n))
+            data = [data, PSD[:, :specter_threshold_index]]
 
         statistics_matrix = []
         for data_element in data:
