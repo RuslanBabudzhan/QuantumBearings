@@ -1,10 +1,11 @@
-from typing import Union, Generator
+from typing import Optional, Union, Generator
 import numpy as np
 import pandas as pd
 
 
 def id_shuffler(data: Union[pd.DataFrame, np.ndarray],
-                train_size: float) -> np.ndarray:
+                train_size: float,
+                seed: int) -> np.ndarray:
     """
     Shuffle given array into train and test datasets
 
@@ -14,7 +15,9 @@ def id_shuffler(data: Union[pd.DataFrame, np.ndarray],
     len_data = len(data)
     N = int(len_data * train_size)
     data = np.array(data)
-    np.random.shuffle(data)
+
+    rng = np.random.default_rng(seed)
+    rng.shuffle(data)
     train, test = data[:N], data[N:]
 
     return train, test
@@ -48,11 +51,11 @@ class OverlapGroupCV():
         id_0 = status[status[0] == 0][1].unique()
         id_1 = status[status[0] == 1][1].unique()
 
-        for _ in range(self.n_repeats):
+        for i in range(self.n_repeats):
             
             # Stratified slpit into train and test
-            id_0_train, id_0_test = id_shuffler(id_0, self.train_size)
-            id_1_train, id_1_test = id_shuffler(id_1, self.train_size)
+            id_0_train, id_0_test = id_shuffler(np.unique(id_0), self.train_size, i)
+            id_1_train, id_1_test = id_shuffler(np.unique(id_1), self.train_size, i)
 
             id_train = np.concatenate([id_0_train, id_1_train])
             id_test = np.concatenate([id_0_test, id_1_test])
@@ -91,11 +94,11 @@ class PresplitedOverlapGroupCV():
 
         status = pd.DataFrame([list(y), list(groups)]).T
 
-        for _ in range(self.n_repeats):
+        for i in range(self.n_repeats):
             
             # Reduce size of given train and test groups to necessary
-            id_train, _ = id_shuffler(train_groups, self.subset_size)
-            id_test, _ = id_shuffler(test_groups, self.subset_size)
+            id_train, _ = id_shuffler(np.unique(train_groups), self.subset_size, i)
+            id_test, _ = id_shuffler(np.unique(test_groups), self.subset_size, i)
 
             # Indexes that belong to given train and test id
             subset_train_id = status[status[1].map(
