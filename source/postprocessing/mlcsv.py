@@ -8,11 +8,12 @@ Use append_results_to_csv to append data from *.json log files to existing *.csv
 Use create_readable_xlsx to create human-readable *.xlsx table from *.csv table
 """
 
+import os
+import re
 from typing import List, Union, Optional, Type
 from collections import Counter
-import re
-import xlsxwriter
 
+import xlsxwriter
 import pandas as pd
 import numpy as np
 
@@ -84,8 +85,6 @@ def generate_csv_from_results(results: Union[List[BaseResultsData], List[str]],
     """
     if not bool(re.search("\.csv$", csv_name)):
         raise ValueError(f'csv file name must be in *.csv format. Got {csv_name}')
-    if csv_path and not bool(re.search("/$", csv_path)):
-        raise ValueError(f'path must end with "/" symbol.')
     if isinstance(results[0], str):
         if not results_type:
             raise TypeError('"results_type" must be added if "results" represents a list of files names')
@@ -98,7 +97,13 @@ def generate_csv_from_results(results: Union[List[BaseResultsData], List[str]],
     joined_dict = _full_dicts_join(results_dicts)
 
     results_df = pd.DataFrame(joined_dict)
-    results_df.to_csv(f"{csv_path if csv_path else ''}{csv_name}", index=False)
+
+    if csv_path:
+        fullname = os.path.join(csv_path, csv_name)
+    else:
+        fullname = csv_name
+
+    results_df.to_csv(fullname, index=False)
 
 
 def append_results_to_csv(results: Union[List[BaseResultsData], List[str]],
@@ -136,9 +141,12 @@ def append_results_to_csv(results: Union[List[BaseResultsData], List[str]],
     new_results_df = pd.DataFrame(joined_dict)
     results_df = pd.concat([old_results_df, new_results_df], ignore_index=True)
     if copy:
-        results_df.to_csv(f"{csv_path if csv_path else ''}copy_{csv_name}", index=False)
+        csv_name = f"copy_{csv_name}"
+    if csv_path:
+        fullname = os.path.join(csv_path, csv_name)
     else:
-        results_df.to_csv(f"{csv_path if csv_path else ''}{csv_name}", index=False)
+        fullname = csv_name
+    results_df.to_csv(fullname, index=False)
 
 
 def create_readable_xlsx(xlsx_name, csv_name, xlsx_path: Optional[str] = None, csv_path: Optional[str] = None):
@@ -170,10 +178,6 @@ def create_readable_xlsx(xlsx_name, csv_name, xlsx_path: Optional[str] = None, c
         raise ValueError(f'csv file name must be in *.csv format. Got {csv_name}')
     if not bool(re.search("\.xlsx$", xlsx_name)):
         raise ValueError(f'xlsx file name must be in *.xlsx format. Got {xlsx_name}')
-    if xlsx_path and not bool(re.search("/$", xlsx_path)):
-        raise ValueError(f'xlsx path must end with "/" symbol. Got {xlsx_path}')
-    if csv_path and not bool(re.search("/$", csv_path)):
-        raise ValueError(f'csv path must end with "/" symbol. Got {csv_path}')
 
     data = pd.read_csv(f"{csv_path if csv_path else ''}{csv_name}", delimiter=',')
     dataframe_columns = list(data.columns)
@@ -188,7 +192,12 @@ def create_readable_xlsx(xlsx_name, csv_name, xlsx_path: Optional[str] = None, c
     data.insert(loc=0, column='experiment index', value=np.arange(len(data)))
     data.astype('object')
 
-    workbook = xlsxwriter.Workbook(f"{xlsx_path if xlsx_path else ''}{xlsx_name}")
+    if xlsx_path:
+        xlsx_fool_path = os.path.join(xlsx_path, xlsx_name)
+    else:
+        xlsx_fool_path = xlsx_name
+
+    workbook = xlsxwriter.Workbook(xlsx_fool_path)
     worksheet = workbook.add_worksheet()
 
     bool_map = {True: "Yes", False: "No", None: None}
