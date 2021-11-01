@@ -49,15 +49,13 @@ def serialize_results(results: Union[BaseResultsData, List[BaseResultsData]],
     for filename in filenames:
         if not bool(re.search("\.json$", filename)):
             raise ValueError(f'file name must be in *.json format. Got {filename}')
-    if filepath and not bool(re.search("/$", filepath)):
-        raise ValueError(f'path must end with "/" symbol.')
 
     for result, filename in zip(results, filenames):
         result = result.dict()
         if filepath:
-            fullname = f"{filepath}{filename}"
+            fullname = os.path.join(filepath, filename)
         else:
-            fullname = f"{filename}"
+            fullname = filename
         with open(fullname, "w") as write_file:
             json.dump(result, write_file, cls=EnhancedJSONEncoder)
 
@@ -84,15 +82,13 @@ def _get_strings_from_jsons(filenames: Union[str, List[str]], filepath: Optional
 
     if not bool(re.search("\.json$", filenames[0])):
         raise ValueError(f'log file name must be in *.json format. Got {filenames[0]}')
-    if filepath and not bool(re.search("/$", filepath)):
-        raise ValueError(f'path must end with "/" symbol.')
 
     json_strings = []
     for filename in filenames:
         if filepath:
-            fullname = f"{filepath}{filename}"
+            fullname = os.path.join(filepath, filename)
         else:
-            fullname = f"{filename}"
+            fullname = filename
         with open(fullname, "r") as read_file:
             json_strings.append(read_file.read())
     return json_strings.copy()
