@@ -60,8 +60,8 @@ def serialize_results(results: Union[BaseResultsData, List[BaseResultsData]],
             json.dump(result, write_file, cls=EnhancedJSONEncoder)
 
 
-def deserialize_results(filenames: Union[str, List[str]],
-                        result_obj_type: Type[BaseResultsData],
+def deserialize_results(result_obj_type: Type[BaseResultsData],
+                        filenames: Optional[Union[str, List[str]]] = None,
                         filepath: Optional[str] = None) -> List[BaseResultsData]:
     """
     implements Results object deserialization
@@ -75,13 +75,21 @@ def deserialize_results(filenames: Union[str, List[str]],
     return result_objects
 
 
-def _get_strings_from_jsons(filenames: Union[str, List[str]], filepath: Optional[str] = None) -> List[str]:
+def _get_strings_from_jsons(filenames: Optional[Union[str, List[str]]] = None,
+                            filepath: Optional[str] = None) -> List[str]:
     """generates strings from *.json files for parsing"""
     if isinstance(filenames, str):
         filenames = [filenames]
 
-    if not bool(re.search("\.json$", filenames[0])):
-        raise ValueError(f'log file name must be in *.json format. Got {filenames[0]}')
+    if filenames is None and filepath is None:
+        raise ValueError(f'Either filenames or filepath must be passed')
+
+    if filenames is None:
+        filenames = set((file for file in os.listdir(filepath) if os.path.isfile(os.path.join(filepath, file))))
+
+    for filename in filenames:
+        if not bool(re.search("\.json$", filename)):
+            raise ValueError(f'log file name must be in *.json format. Got {filename}')
 
     json_strings = []
     for filename in filenames:
