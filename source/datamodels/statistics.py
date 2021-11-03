@@ -1,3 +1,4 @@
+from antropy.entropy import perm_entropy
 import numpy as np
 from scipy import stats
 from pyentrp import entropy as pent
@@ -165,3 +166,67 @@ class CrestFactor:  # statistic №17
         mx = np.max(np.abs(data), axis=axis)
         sq = np.sqrt(np.mean(np.square(data), axis=axis))
         return mx/sq
+
+
+class PermutationEntropy:  # statistic №18
+    @staticmethod
+    def count_stat(data, axis=1):
+        rows_count = data.shape[0]
+        perm_entropy = []
+        for row in range(rows_count):
+            if axis == 1:
+                data_row = data[row, :]
+            else:
+                data_row = data[:, row]
+            perm_entropy.append(ent.perm_entropy(data_row))
+    
+        return np.array(perm_entropy)
+
+
+
+class SVDEntropy:  # statistic №19
+    @staticmethod
+    def count_stat(data, axis=1):
+        rows_count = data.shape[0]
+        entropy_list = []
+        for row in range(rows_count):
+            if axis == 1:
+                data_row = data[row, :]
+            else:
+                data_row = data[:, row]
+            entropy_list.append(ent.svd_entropy(data_row, normalize=True))
+        return entropy_list
+
+
+class ApproximateEntropy:  # statistic №20
+    @staticmethod
+    def count_stat(data, axis=1):
+        rows_count = data.shape[0]
+        entropy_list = []
+        for row in range(rows_count):
+            if axis == 1:
+                data_row = data[row, :]
+            else:
+                data_row = data[:, row]
+            entropy_list.append(ent.app_entropy(data_row))
+        return entropy_list
+
+
+class KatzFD:  # statistic №20
+    @staticmethod
+    def count_stat(data, axis=1):
+        return ent.katz_fd(data, axis=axis)
+
+
+class DetrendedFluctuationAnalysis:  # statistic №20
+    @staticmethod
+    def count_stat(data, axis=1):
+        rows_count = data.shape[0]
+        DFA_list = []
+        for row in range(rows_count):
+            if axis == 1:
+                data_row = data[row, :]
+            else:
+                data_row = data[:, row]
+            DFA_list.append(ent.detrended_fluctuation(data_row))
+        return DFA_list
