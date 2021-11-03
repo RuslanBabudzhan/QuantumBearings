@@ -212,13 +212,13 @@ class ApproximateEntropy:  # statistic №20
         return entropy_list
 
 
-class KatzFD:  # statistic №20
+class KatzFD:  # statistic №21
     @staticmethod
     def count_stat(data, axis=1):
         return ent.katz_fd(data, axis=axis)
 
 
-class DetrendedFluctuationAnalysis:  # statistic №20
+class DetrendedFluctuationAnalysis:  # statistic №22
     @staticmethod
     def count_stat(data, axis=1):
         rows_count = data.shape[0]
