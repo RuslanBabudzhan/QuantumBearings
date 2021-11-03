@@ -58,7 +58,7 @@ class BaseSplitter(ABC):
         data = raw_data
 
         if self.scaler:
-            data = self.scaler().fit_transform(X=data.T)
+            data = self.scaler.fit_transform(X=data.T)
             data = data.T
 
         if self.use_signal and not self.use_specter:
