@@ -1,8 +1,10 @@
 import pandas as pd
 import numpy as np
 import time
-from typing import Union
+from typing import Union, Optional, List
 import sklearn
+from source.processes import Shuffler
+from sklearn.feature_selection import RFECV
 
 class Features_selection:
 
@@ -24,13 +26,14 @@ class Features_selection:
             [fs_method.feature_names_in_, np.zeros(len(fs_method.feature_names_in_))]).\
                 transpose().\
                     rename(columns={0: 'feature'})
-        return important_features['feature'].iloc[:self.n_features].to_list()
+        return important_features.iloc[:self.n_features]
 
 
     def wrapper_fs_export(self, 
-                          fs_method: sklearn.base.BaseEstimator, 
+                          container: List, 
                           X: Union[pd.DataFrame, np.ndarray], 
-                          y: Union[pd.DataFrame, np.ndarray]) -> list:
+                          y: Union[pd.DataFrame, np.ndarray],
+                          groups: Union[pd.DataFrame, np.ndarray]) -> list:
         """
         fs_model:
             sklearn.feature_selection.SequentialFeatureSelector
@@ -40,20 +43,34 @@ class Features_selection:
         Fuction takes X and y data, fit wrapper methods such Recursive Feature Elimination, 
         Sequential Feature Selection or Select From Model, reterns df with selected features.
         """
-        fs_method.fit(X, y)
+
+        if type(container) == list:
+            if type(groups) == list:
+                cv = Shuffler.PresplitedOverlapGroupCV(train_size=container[1], n_repeats=container[2]).split(X, y, groups=groups[0], train_groups=groups[1], test_groups=groups[2])
+                fs_method = RFECV(estimator=container[0], scoring='f1', cv=cv, min_features_to_select=self.n_features)
+                fs_method.fit(X, y, groups)
+            else:  
+                cv = Shuffler.OverlapGroupCV(train_size=container[1], n_repeats=container[2]).split(X, y, groups=groups)
+                fs_method = RFECV(estimator=container[0], scoring='f1', cv=cv, min_features_to_select=self.n_features)
+                fs_method.fit(X, y, groups)
+        else:
+            fs_method = container
+            fs_method.fit(X, y)
 
         try:
-            importance = fs_method.ranking_
+            importance = fs_method.estimator_.feature_importances_
         except AttributeError:
             importance = np.zeros(self.n_features)
 
+        features_names = fs_method.feature_names_in_[fs_method.support_]
+
         important_features = pd.DataFrame(
-            [fs_method.feature_names_in_, importance]).\
+            [features_names, importance]).\
                 transpose().\
                     rename(columns={0: 'feature', 1: 'importance'}).\
                         sort_values(by='importance', ignore_index=True)
         
-        return important_features['feature'].iloc[:self.n_features].to_list()
+        return important_features
 
 
     def filter_method_export(self, 
@@ -76,13 +93,14 @@ class Features_selection:
                     rename(columns={0: 'feature', 1: 'importance'}).\
                         sort_values(by='importance', ignore_index=True)
         
-        return important_features['feature'].iloc[:self.n_features].to_list()
+        return important_features.iloc[:self.n_features]
 
 
     def select_with_method(self, 
-                           methods: dict, 
+                           methods: dict[str, sklearn.base.BaseEstimator], 
                            X: Union[pd.DataFrame, np.ndarray], 
-                           y: Union[pd.DataFrame, np.ndarray]):
+                           y: Union[pd.DataFrame, np.ndarray],
+                           groups: Optional[Union[pd.DataFrame, np.ndarray]]=None):
         """
         Iterate by FS dict and return selected features as DataFrame
         """
@@ -92,17 +110,18 @@ class Features_selection:
 
             start_time = time.time()
 
+            method = method
+
             if name == 'VT':
-                important_features = self.VT_export(method, X.values, y)
-
+                important_features = self.VT_export(method, X, y)
             elif any(mod in name for mod in ['RFE', 'SFM', 'SFS']):
-                important_features = self.wrapper_fs_export(method, X.values, y)
-
+                important_features = self.wrapper_fs_export(method, X, y, groups)
             else:
-                important_features = self.filter_method_export(method, X.values, y)
+                important_features = self.filter_method_export(method, X, y, groups)
             
             print(f"{name} --- time: {time.time() - start_time} seconds ---")
 
-            important_features_df[name] = important_features
+            col_names = [name, f'{name} importance']
+            important_features_df[col_names] = important_features
 
         return important_features_df

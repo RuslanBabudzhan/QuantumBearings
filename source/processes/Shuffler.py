@@ -78,11 +78,11 @@ class OverlapGroupCV():
 class PresplitedOverlapGroupCV():
 
     def __init__(self,
-                 subset_size: float = 0.63,
+                 train_size: float = 0.63,
                  n_repeats: int = 100):
 
-        assert 0 <= subset_size <= 1, 'Train size should be between 0 and 1'
-        self.subset_size = subset_size
+        assert 0 <= train_size <= 1, 'Train size should be between 0 and 1'
+        self.train_size = train_size
         self.n_repeats = n_repeats
 
     def split(self,
@@ -97,8 +97,8 @@ class PresplitedOverlapGroupCV():
         for i in range(self.n_repeats):
             
             # Reduce size of given train and test groups to necessary
-            id_train, _ = id_shuffler(np.unique(train_groups), self.subset_size, i)
-            id_test, _ = id_shuffler(np.unique(test_groups), self.subset_size, i)
+            id_train, _ = id_shuffler(np.unique(train_groups), self.train_size, i)
+            id_test, _ = id_shuffler(np.unique(test_groups), self.train_size, i)
 
             # Indexes that belong to given train and test id
             subset_train_id = status[status[1].map(
