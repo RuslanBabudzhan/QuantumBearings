@@ -1,4 +1,3 @@
-from antropy.entropy import perm_entropy
 import numpy as np
 from scipy import stats
 from pyentrp import entropy as pent
@@ -181,7 +180,6 @@ class PermutationEntropy:  # statistic №18
             perm_entropy.append(ent.perm_entropy(data_row))
     
         return np.array(perm_entropy)
-
 
 
 class SVDEntropy:  # statistic №19

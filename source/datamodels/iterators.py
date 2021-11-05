@@ -43,6 +43,11 @@ class Stats(Enum):
     activity = statistics.Activity
     complexity = statistics.Complexity
     crest_factor = statistics.CrestFactor
+    permutation_entropy = statistics.PermutationEntropy
+    svd_entropy = statistics.SVDEntropy
+    approx_entropy = statistics.ApproximateEntropy
+    katz_fd = statistics.KatzFD
+    detrended_fluctuation = statistics.DetrendedFluctuationAnalysis
 
     @staticmethod
     def get_keys() -> List[str]:
