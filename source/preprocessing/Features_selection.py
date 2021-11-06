@@ -4,7 +4,7 @@ import time
 from typing import Union, Optional, List
 import sklearn
 from source.processes import Shuffler
-from sklearn.feature_selection import RFECV
+from sklearn.feature_selection import RFECV, RFE
 
 class Features_selection:
 
@@ -30,38 +30,50 @@ class Features_selection:
 
 
     def wrapper_fs_export(self, 
-                          container: List, 
+                          estimator: Union[List, sklearn.base.BaseEstimator], 
                           X: Union[pd.DataFrame, np.ndarray], 
                           y: Union[pd.DataFrame, np.ndarray],
                           groups: Union[pd.DataFrame, np.ndarray]) -> list:
         """
         fs_model:
-            sklearn.feature_selection.SequentialFeatureSelector
+            sklearn.feature_selection.RFECV
             sklearn.feature_selection.RFE
-            sklearn.feature_selection.SelectFromModel
         
-        Fuction takes X and y data, fit wrapper methods such Recursive Feature Elimination, 
-        Sequential Feature Selection or Select From Model, reterns df with selected features.
+        Fuction takes X and y data, fit wrapper method (Recursive Feature Elimination or RFECV), 
+        returns df with selected features.
         """
 
-        if type(container) == list:
+        if type(estimator) == list:
             if type(groups) == list:
-                cv = Shuffler.PresplitedOverlapGroupCV(train_size=container[1], n_repeats=container[2]).split(X, y, groups=groups[0], train_groups=groups[1], test_groups=groups[2])
-                fs_method = RFECV(estimator=container[0], scoring='f1', cv=cv, min_features_to_select=self.n_features)
+                cv = Shuffler.PresplitedOverlapGroupCV(train_size=estimator[1], 
+                                                       n_repeats=estimator[2]).split(X, 
+                                                                                     y, 
+                                                                                     groups=groups[0], 
+                                                                                     train_groups=groups[1], 
+                                                                                     test_groups=groups[2])
+                fs_method = RFECV(estimator=estimator[0], 
+                                  scoring='f1', 
+                                  cv=cv, 
+                                  min_features_to_select=self.n_features)
+
                 fs_method.fit(X, y, groups)
             else:  
-                cv = Shuffler.OverlapGroupCV(train_size=container[1], n_repeats=container[2]).split(X, y, groups=groups)
-                fs_method = RFECV(estimator=container[0], scoring='f1', cv=cv, min_features_to_select=self.n_features)
+                cv = Shuffler.OverlapGroupCV(train_size=estimator[1], 
+                                             n_repeats=estimator[2]).split(X, y, groups=groups)
+
+                fs_method = RFECV(estimator=estimator[0], 
+                                  scoring='f1', 
+                                  cv=cv, 
+                                  min_features_to_select=self.n_features)
+
                 fs_method.fit(X, y, groups)
         else:
-            fs_method = container
+            fs_method = RFE(estimator, 
+                            n_features_to_select=self.n_features, 
+                            step=1)
             fs_method.fit(X, y)
 
-        try:
-            importance = fs_method.estimator_.feature_importances_
-        except AttributeError:
-            importance = np.zeros(self.n_features)
-
+        importance = fs_method.estimator_.feature_importances_
         features_names = fs_method.feature_names_in_[fs_method.support_]
 
         important_features = pd.DataFrame(
@@ -97,7 +109,7 @@ class Features_selection:
 
 
     def select_with_method(self, 
-                           methods: dict[str, sklearn.base.BaseEstimator], 
+                           methods: dict[str, Union[sklearn.base.BaseEstimator, list]], 
                            X: Union[pd.DataFrame, np.ndarray], 
                            y: Union[pd.DataFrame, np.ndarray],
                            groups: Optional[Union[pd.DataFrame, np.ndarray]]=None):
@@ -110,14 +122,14 @@ class Features_selection:
 
             start_time = time.time()
 
-            method = method
-
             if name == 'VT':
                 important_features = self.VT_export(method, X, y)
             elif any(mod in name for mod in ['RFE', 'SFM', 'SFS']):
                 important_features = self.wrapper_fs_export(method, X, y, groups)
-            else:
+            elif 'Select' in name:
                 important_features = self.filter_method_export(method, X, y, groups)
+            else:
+                raise Exception('Sorry, we dont support this FS method yet :(')
             
             print(f"{name} --- time: {time.time() - start_time} seconds ---")
 
