@@ -142,14 +142,14 @@ def bar_plot(results: Union[List[BaseResultsData], List[Dict[str, float]]],
     palette_obj = sns.color_palette(palette=palette, n_colors=len(metrics))
     plot = sns.barplot(x='models', y='scores', hue='metrics', data=results_df, palette=palette_obj)
     plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-
+    print(font_scale)
     if plot_vals:
         for p in plot.patches:
             plot.annotate(format(p.get_height(), '.2f'),
                           (p.get_x() + p.get_width() / 2., p.get_height()),
-                          ha='center', va='center',
-                          size=15,
-                          xytext=(0, -12),
+                          ha='center', va='bottom',
+                          size=font_scale*10,
+                          xytext=(0, 0),
                           textcoords='offset points')
 
     if to_png:
