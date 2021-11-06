@@ -1,6 +1,6 @@
 import os
 import configparser
-from typing import List, Tuple, Optional, Dict, Union
+from typing import List, Optional, Dict, Union
 
 import numpy as np
 import seaborn as sns
@@ -141,6 +141,7 @@ def bar_plot(results: Union[List[BaseResultsData], List[Dict[str, float]]],
     sns.set_style(style)
     palette_obj = sns.color_palette(palette=palette, n_colors=len(metrics))
     plot = sns.barplot(x='models', y='scores', hue='metrics', data=results_df, palette=palette_obj)
+    plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
 
     if plot_vals:
         for p in plot.patches:
@@ -155,15 +156,3 @@ def bar_plot(results: Union[List[BaseResultsData], List[Dict[str, float]]],
         path = os.path.join(filepath, filename)
         plot.get_figure().savefig(path)
     plt.show()
-
-
-
-
-
-
-
-
-
-
-
-
