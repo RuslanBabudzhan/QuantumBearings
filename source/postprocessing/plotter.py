@@ -142,17 +142,44 @@ def bar_plot(results: Union[List[BaseResultsData], List[Dict[str, float]]],
     palette_obj = sns.color_palette(palette=palette, n_colors=len(metrics))
     plot = sns.barplot(x='models', y='scores', hue='metrics', data=results_df, palette=palette_obj)
     plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-
+    print(font_scale)
     if plot_vals:
         for p in plot.patches:
             plot.annotate(format(p.get_height(), '.2f'),
                           (p.get_x() + p.get_width() / 2., p.get_height()),
-                          ha='center', va='center',
-                          size=15,
-                          xytext=(0, -12),
+                          ha='center', va='bottom',
+                          size=font_scale*10,
+                          xytext=(0, 0),
                           textcoords='offset points')
 
     if to_png:
         path = os.path.join(filepath, filename)
         plot.get_figure().savefig(path)
     plt.show()
+
+
+d1 = {'accuracy': 0.9079999999999998,
+      'precision': 0.6547081111323488,
+      'recall': 0.4894000000000001,
+      'f1': 0.5411927870930977,
+      'TPR': 0.4894000000000001,
+      'TNR': 0.9645675675675676}
+
+d2 = {'accuracy': 0.8079999999999998,
+      'precision': 0.5547081111323488,
+      'recall': 0.5894000000000001,
+      'f1': 0.6411927870930977,
+      'TPR': 0.5894000000000001,
+      'TNR': 0.8645675675675676}
+
+d3 = {'accuracy': 0.7079999999999998,
+      'precision': 0.9547081111323488,
+      'recall': 0.7894000000000001,
+      'f1': 0.3411927870930977,
+      'TPR': 0.9894000000000001,
+      'TNR': 0.2645675675675676}
+
+d = [d1, d2, d3]
+
+bar_plot(results=d, models=['LR', 'M2', "RRR"], metrics=['f1', 'precision', 'recall', 'accuracy', 'TPR', 'TNR'],
+         title=f'DSM GridSearch', plot_vals=True, to_png=False, filename=f'bar_DSM__4_11_2021.png')
