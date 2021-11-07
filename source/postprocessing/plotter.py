@@ -6,6 +6,7 @@ import numpy as np
 import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib import transforms
 
 from source.datamodels.datamodels import BootstrapResults, BaseResultsData
 from source.utils import get_project_root
@@ -142,7 +143,6 @@ def bar_plot(results: Union[List[BaseResultsData], List[Dict[str, float]]],
     palette_obj = sns.color_palette(palette=palette, n_colors=len(metrics))
     plot = sns.barplot(x='models', y='scores', hue='metrics', data=results_df, palette=palette_obj)
     plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-    print(font_scale)
     if plot_vals:
         for p in plot.patches:
             plot.annotate(format(p.get_height(), '.2f'),
@@ -154,5 +154,5 @@ def bar_plot(results: Union[List[BaseResultsData], List[Dict[str, float]]],
 
     if to_png:
         path = os.path.join(filepath, filename)
-        plot.get_figure().savefig(path)
+        plot.get_figure().savefig(path, bbox_inches='tight')
     plt.show()
