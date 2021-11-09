@@ -12,7 +12,7 @@ data
 # ignore all sandboxes
 Sandboxes
 
-# ignore notebooks excluding public
+# ignore notebooks except public
 notebooks
 !notebooks/CompareDatasets.ipynb
 !notebooks/GridSearch.ipynb.ipynv
@@ -29,9 +29,10 @@ source/processes/Stats_features.py
 # ignore experiments results in json format
 *.json
 
-# ignore images except public
+# ignore images except public and readme
 experiments/images/*
 !experiments/images/public/
+!experiments/images/ReadMe/
 
 # ignore result tables except public
 *.csv
