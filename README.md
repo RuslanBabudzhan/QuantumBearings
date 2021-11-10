@@ -135,7 +135,7 @@ The essence of the experiment is close to ours: data is collected from two beari
 | Parameters       | Description                                                        | Units |
 | :--------------: |:------------------------------------------------------------------:| :----:|
 | Experiment ID	   | Unique identifier of the experiment                                |   -   |
-| Speed            | Скорость ротора: 200, 350, 500                                     |  rpm  |
+| Speed            | Rotor speed: 200, 350, 500                                         |  rpm  |
 | Fault level      | The failure depth: F0, F1 (.006), F2 (.014), F3 (.019), F4 (.027)  |  mm   |
 | Record number    | Identifier of experiment repeat: 1, 2, 3                           |   -   |
 | Sample rate      | Number of records per second: 40                                   |  kHz  |
