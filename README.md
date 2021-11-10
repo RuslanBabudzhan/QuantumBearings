@@ -3,7 +3,9 @@
 
 # QuantumBearings
 
-**QuantumBearings** - project the essence of which is the classification of bearings based on their vibration signals data and machine learning methods. Project includes data collection using a device that simulates bearings` work, processing of the received data and signals classification for recognizing defective bearings.
+**QuantumBearings** - project the essence of which is the detection of defective rolling bearings with machine learning methods based on bearings acceleration data. 
+
+Project includes data collection using a device that simulates bearings` work, processing of the received data and signals classification for recognizing defective bearings.
 
 Most of the features for working with data can be seen in this [Usage examples notebook](https://nbviewer.jupyter.org/github/RuslanBabudzhan/QuantumBearings/blob/master/notebooks/UsageExamples.ipynb "Usage examples").
 
@@ -41,7 +43,7 @@ The data was collected according to the acceleration-hold-stop scheme. First, th
 
 The resulting dataset consists of 10265700 recordings that describe rotors behavior, 91600 per bearing on average. Collecting data has been uploaded on platform Kaggle and it is in the public domain ([link](https://www.kaggle.com/isaienkov/bearing-classification)). Detailed information about resulting dataset is presented below. For classification, the collected acceleration data of bearings in three axes: X, Y, Z will be used. The name of these features contains the bearing index and the acceleration axis.
 
-<img src="experiments/images/ReadMe/signal.png" alt="Signals" width="600"/>
+<img src="experiments/images/ReadMe/signal.png" alt="Signals" width="1000"/>
 
 
 |     Field      | Description                                                    | Units |
@@ -145,8 +147,6 @@ generate_csv_from_results(results=results, csv_name="DSM_GS.csv", results_type=G
 # for intermediate saving of tables, as well as in order to be able to add new records to the existing table
 
 create_readable_xlsx(xlsx_name="DSM GridSearch results.xlsx", csv_name="DSM_GS.csv")  # create ML experiment tracking table
-
-
 ```
 <details>
 <summary><b>Example of ML experiment tracking table</b></summary>
