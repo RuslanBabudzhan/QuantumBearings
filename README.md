@@ -94,16 +94,24 @@ The best option was to train the model on signal statistics. Best F1 score: 84%
 
 We also looked at a third party dataset (Cesar №2). We trained the models on this set, using different signal scaling before splitting into batches. So, for this dataset we considered the following options:
 1. Pure signal, without scaling;
-2. Standard scale (z-score);
-3. MinMax scale ([link](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.RobustScaler.html "Robust scaler"));
-4. Robust scale ([link](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.MinMaxScaler.html "Robust scaler")).
+2. [Standard scale](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html "Standard scaler");
+3. [MinMax scale](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.MinMaxScaler.html "MinMax scaler");
+4. [Robust scale](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.RobustScaler.html "Robust scaler").
 
 You can see all the results for both datasets [here](). The charts are [here]().
 ### Compare datasets
 _under construction_
 
 ### Feature selection
-_under construction_
+
+In the project, the results were tested on features selected using the RFE (Recursive Feature Elimination) algorithm in order to increase the speed of calculation of experiments, as well as to get rid of features that have a negative contribution or no contribution at all.
+
+![Image of selected features table](experiments/images/ReadMe/selected_features_preview.png)
+
+Feature selection was tested on different datasets: raw, scaled (standard, robust, minmax) and on glued datasets.
+
+Results before and after using the selected features:
+
 
 ### Results
 _under construction_
