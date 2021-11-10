@@ -9,10 +9,10 @@ Most of the features for working with data can be seen in this [Usage examples n
 
 
 
-### Table of Contents
+## Table of Contents
 _under construction_
 
-### Data mining
+## **Data mining**
 To create dataset, a test bench has been developed and configured to simulate the operation of the rotor system. Vibration sensors have been used to monitor the state of mechanisms in an automatic mode, to classify the quality of bearings operation with machine learning methods.
 
 <details>
@@ -44,10 +44,34 @@ The resulting dataset consists of 10265700 recordings that describe rotors behav
 | RPM/HZ           |	Rotation speed                                                  | rpm   |
 | W	               |The motor power at a time                                           |Watts  |
 
-### Data processing
-_under construction_
+## **Data processing**
+Since training models on a raw signal is a very time-consuming process, it was decided to use various measures: [descriptive statistics](https://en.wikipedia.org/wiki/Descriptive_statistics), entropy ([Shannon](https://towardsdatascience.com/the-intuition-behind-shannons-entropy-e74820fe9800), [sample](https://en.wikipedia.org/wiki/Sample_entropy), [approximate](https://en.wikipedia.org/wiki/Approximate_entropy), [SVD](https://en.wikipedia.org/wiki/Singular_value_decomposition), [permutation](https://www.researchgate.net/publication/315504491_Permutation_Entropy_New_Ideas_and_Challenges)), fractal dimensions ([Petrosyan](https://hal.inria.fr/inria-00442374/document), [Higuchi](https://en.wikipedia.org/wiki/Higuchi_dimension), [Katz](https://hal.inria.fr/inria-00442374/document)), [detrended fluctuation analysis](https://en.wikipedia.org/wiki/Detrended_fluctuation_analysis), [crest factor](https://en.wikipedia.org/wiki/Crest_factor), [Hjorth parameters](https://en.wikipedia.org/wiki/Hjorth_parameters), zero crossing and [Hurst exponent](https://en.wikipedia.org/wiki/Hurst_exponent).
 
-### Building models
+In order to artificially expand the dataset, splitting signals into chunks was used, so when splits_number = 10 we increase the sample 10 times, which, for example, allows us to use GridSearch more flexibly for selecting hyperparameters.
+```python
+from sklearn.preprocessing import StandardScaler
+
+from source.preprocessing import splitter
+from source.datamodels import iterators
+
+
+stats = iterators.Stats.get_keys()
+columns = ['a1_x', 'a1_y', 'a1_z', 'a2_x', 'a2_y', 'a2_z']
+splitter_processor = splitter.Splitter(
+    use_signal=True, 
+    use_specter=True, 
+    specter_threshold=500, 
+    stats=stats, 
+    scaler=StandardScaler())
+                                       
+prepared_data_our = splitter_processor.split_dataset(
+    dataset, 
+    stable_area=[(10, 19)], 
+    splits_number=10, 
+    signal_data_columns=columns)
+```
+
+## **Building models**
 
 An example of tuning the models is available in this [GridSearch Notebook](https://nbviewer.jupyter.org/github/RuslanBabudzhan/QuantumBearings/blob/master/notebooks/GridSearch.ipynb "Usage examples").
 
@@ -68,6 +92,7 @@ Metrics.get_keys()
 Since there are only 112 records in our dataset, the quality of the models is highly dependent on splitting the sample into train and test subsamples. We should not use data from the same batch in both the training and the test set (the models must be able to recognize bearing signals that have not been encountered before), so we decided to use bootstrapped samples for training. Thus, we can generate an infinitely large number of values of the target metric, and average its values in order to have a stable estimate of the quality of the model.
 
 In our work, we use scikit-learn machine learning library to build models. Thus, we can use a ready-made method for tuning the models ([Usage example](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html "sklearn GridSearch")). But scikit-learn does not provide the ability to generate grouped train and test samples with overlaps. So, we have created a custom indices generator for our task:
+
 ```python
 from source.processes.Shuffler import OverlapGroupCV
 
@@ -99,12 +124,54 @@ We also looked at a third party dataset (Cesar №2). We trained the models on t
 4. [Robust scale](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.RobustScaler.html "Robust scaler").
 
 You can see all the results for both datasets [here](). The charts are [here]().
-### Compare datasets
-_under construction_
+## **Compare datasets**
+The most important, and therefore the most difficult, is to predict the quality of bearings from one dataset on the basis of training on another. To test various techniques, third-party datasets were used: [the first](https://zenodo.org/record/3898942#.YYwp_Lp8KUnhttps://zenodo.org/record/3898942#.YYwp_Lp8KUn), [the second](https://zenodo.org/record/5084405#.YYwp_bp8KUm).
 
-### Feature selection
+<details>
+<summary><b>Cesar datasets details</b></summary>
+
+The essence of the experiment is close to ours: data is collected from two bearings: the first is stationary and in good condition, the second removable and has 5 stages of damage: from intact to very shabby. Each experiment was run three times, to ensure that small differences due to uncontrollable variables were distributed evenly across all records.
+
+| Parameters       | Description                                                        | Units |
+| :--------------: |:------------------------------------------------------------------:| :----:|
+| Experiment ID	   | Unique identifier of the experiment                                |   -   |
+| Speed            | Скорость ротора: 200, 350, 500                                     |  rpm  |
+| Fault level      | The failure depth: F0, F1 (.006), F2 (.014), F3 (.019), F4 (.027)  |  mm   |
+| Record number    | Identifier of experiment repeat: 1, 2, 3                           |   -   |
+| Sample rate      | Number of records per second: 40                                   |  kHz  |
+| Bearings         | FAG 22205E1K                                                       |   -   |
+| Load             | Load on trabsmission: 1.4                                          | kN    |
+
+</details>
+
+During the exploratory data analysis, it was found that the acceleration rates in the third-party dataset are very different from ours, which is not strange: a different load on the shaft, a different type of bearings, a different rotation speed. An attempt was made to neutralize different experimental conditions using scalers: standard, robust, minmax. As expected, this did not lead to a strong improvement in the results. At the moment, other methods are being developed to bring different bearings to the same dimension.
+
+The Shuffler.PresplitedOverlapGroupCV method was created to implement a GridSearch with dataset glued from two different datasets, where part of one is used as training data, and part of the second for test data.
+
+```python
+cv = Shuffler.PresplitedOverlapGroupCV(
+    train_size=0.63, 
+    n_repeats=n_repeats).split(
+        X, 
+        y, 
+        groups=groups, 
+        train_groups=cesar_groups, 
+        test_groups=our_groups)
+
+GSCV = GridSearchCV(estimator, grid, scoring=score_names, cv=cv, refit="f1")
+GSCV.fit(X, y, groups=groups)
+```
+
+## **Feature selection**
 
 In the project, the results were tested on features selected using the RFE (Recursive Feature Elimination) algorithm in order to increase the speed of calculation of experiments, as well as to get rid of features that have a negative contribution or no contribution at all.
+
+```python
+from source.preprocessing.Features_selection import Features_selection
+
+
+features_df = FS.select_with_method(estimators_dict, X, y, groups)
+```
 
 <p align="center">
   <img src=experiments/images/ReadMe/selected_features_preview.png>
@@ -115,5 +182,5 @@ Feature selection was tested on different datasets: raw, scaled (standard, robus
 Results before and after using the selected features:
 
 
-### Results
+## **Results**
 _under construction_
