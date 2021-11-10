@@ -44,3 +44,5 @@ experiments/ResultTables/*
 
 # ignore IDE files
 /.idea/*
+README.md
+SF_part.md
