@@ -106,7 +106,9 @@ _under construction_
 
 In the project, the results were tested on features selected using the RFE (Recursive Feature Elimination) algorithm in order to increase the speed of calculation of experiments, as well as to get rid of features that have a negative contribution or no contribution at all.
 
-![Image of selected features table](experiments/images/ReadMe/selected_features_preview.png)
+<p align="center">
+  <img src=experiments/images/ReadMe/selected_features_preview.png>
+</p>
 
 Feature selection was tested on different datasets: raw, scaled (standard, robust, minmax) and on glued datasets.
 
