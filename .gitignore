@@ -36,7 +36,6 @@ experiments/images/*
 
 # ignore result tables except public
 *.csv
-*.xlsx
 experiments/ResultTables/*
 !experiments/ResultTables/public/
 
