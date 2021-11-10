@@ -132,15 +132,15 @@ The most important, and therefore the most difficult, is to predict the quality 
 
 The essence of the experiment is close to ours: data is collected from two bearings: the first is stationary and in good condition, the second removable and has 5 stages of damage: from intact to very shabby. Each experiment was run three times, to ensure that small differences due to uncontrollable variables were distributed evenly across all records.
 
-| Parameters       | Description                                                        | Units |
-| :--------------: |:------------------------------------------------------------------:| :----:|
-| Experiment ID	   | Unique identifier of the experiment                                |   -   |
-| Speed            | Rotor speed: 200, 350, 500                                         |  rpm  |
-| Fault level      | The failure depth: F0, F1 (.006), F2 (.014), F3 (.019), F4 (.027)  |  mm   |
-| Record number    | Identifier of experiment repeat: 1, 2, 3                           |   -   |
-| Sample rate      | Number of records per second: 40                                   |  kHz  |
-| Bearings         | FAG 22205E1K                                                       |   -   |
-| Load             | Load on trabsmission: 1.4                                          | kN    |
+| Parameters       | Description                                                            | Units |
+| :--------------: |:----------------------------------------------------------------------:| :----:|
+| Experiment ID	   | Unique identifier of the experiment                                    |   -   |
+| Speed            | Rotor speed: 200, 350, 500                                             |  rpm  |
+| Fault level      | The failure depth: F0, F1 (0.006), F2 (0.014), F3 (0.019), F4 (0.027)  |  mm   |
+| Record number    | Identifier of experiment repeat: 1, 2, 3                               |   -   |
+| Sample rate      | Number of records per second: 40                                       |  kHz  |
+| Bearings         | FAG 22205E1K                                                           |   -   |
+| Load             | Load on trabsmission: 1.4                                              | kN    |
 
 </details>
 
@@ -149,6 +149,10 @@ During the exploratory data analysis, it was found that the acceleration rates i
 The Shuffler.PresplitedOverlapGroupCV method was created to implement a GridSearch with dataset glued from two different datasets, where part of one is used as training data, and part of the second for test data.
 
 ```python
+from sklearn.model_selection import GridSearchCV
+from source.processes import Shuffler
+
+
 cv = Shuffler.PresplitedOverlapGroupCV(
     train_size=0.63, 
     n_repeats=n_repeats).split(
