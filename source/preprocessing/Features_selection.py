@@ -55,8 +55,7 @@ class Features_selection:
                                   scoring='f1', 
                                   cv=cv, 
                                   min_features_to_select=self.n_features)
-
-                fs_method.fit(X, y, groups)
+                fs_method.fit(X, y, groups[0])
             else:  
                 cv = Shuffler.OverlapGroupCV(train_size=estimator[1], 
                                              n_repeats=estimator[2]).split(X, y, groups=groups)
@@ -68,12 +67,15 @@ class Features_selection:
 
                 fs_method.fit(X, y, groups)
         else:
-            fs_method = RFE(estimator, 
-                            n_features_to_select=self.n_features, 
-                            step=1)
+            fs_method = RFE(estimator=estimator, 
+                            n_features_to_select=self.n_features)
             fs_method.fit(X, y)
 
-        importance = fs_method.estimator_.feature_importances_
+        try:
+            importance = fs_method.estimator_.coef_[0]
+        except AttributeError:
+            importance = fs_method.estimator_.feature_importances_
+            
         features_names = fs_method.feature_names_in_[fs_method.support_]
 
         important_features = pd.DataFrame(
