@@ -9,9 +9,20 @@ Most of the features for working with data can be seen in this [Usage examples n
 
 
 ## Table of Contents
-_under construction_
 
-## **Data mining**
+---
+1. Data mining
+2. Data processing
+3. Building models
+4. Compare datasets
+5. Feature selection
+6. Results
+
+
+### Data mining
+
+---
+
 To create dataset, a test bench has been developed and configured to simulate the operation of the rotor system. Vibration sensors have been used to monitor the state of mechanisms in an automatic mode, to classify the quality of bearings operation with machine learning methods.
 
 <details>
@@ -67,10 +78,12 @@ mat_files_path = 'N1 Cesar Ricardo'
 data = Converter.cesar_convert(mat_files_path)
 ```
 
-## **Data processing**
+### Data processing
+
+---
 Since training models on a raw signal is a very time-consuming process, it was decided to use various measures: [descriptive statistics](https://en.wikipedia.org/wiki/Descriptive_statistics), entropy ([Shannon](https://towardsdatascience.com/the-intuition-behind-shannons-entropy-e74820fe9800), [sample](https://en.wikipedia.org/wiki/Sample_entropy), [approximate](https://en.wikipedia.org/wiki/Approximate_entropy), [SVD](https://en.wikipedia.org/wiki/Singular_value_decomposition), [permutation](https://www.researchgate.net/publication/315504491_Permutation_Entropy_New_Ideas_and_Challenges)), fractal dimensions ([Petrosyan](https://hal.inria.fr/inria-00442374/document), [Higuchi](https://en.wikipedia.org/wiki/Higuchi_dimension), [Katz](https://hal.inria.fr/inria-00442374/document)), [detrended fluctuation analysis](https://en.wikipedia.org/wiki/Detrended_fluctuation_analysis), [crest factor](https://en.wikipedia.org/wiki/Crest_factor), [Hjorth parameters](https://en.wikipedia.org/wiki/Hjorth_parameters), zero crossing and [Hurst exponent](https://en.wikipedia.org/wiki/Hurst_exponent).
 
-In order to artificially expand the dataset, splitting signals into chunks was used, so when splits_number = 10 we increase the sample 10 times, which, for example, allows us to use GridSearch more flexibly for selecting hyperparameters.
+In order to artificially expand the dataset, splitting signals into chunks was used, so when ``splits_number = 10`` we increase the sample 10 times, which, for example, allows us to use GridSearch more flexibly for selecting hyperparameters.
 ```python
 from sklearn.preprocessing import StandardScaler
 
@@ -104,7 +117,11 @@ use_specter=True
     <img src="experiments/images/ReadMe/spectrum.png" alt="Signals FFT" width="600"/>
 </p>
 
-## **Building models**
+
+
+### Building models
+
+---
 
 An example of tuning the models is available in this [GridSearch Notebook](https://nbviewer.jupyter.org/github/RuslanBabudzhan/QuantumBearings/blob/master/notebooks/GridSearch.ipynb "Usage examples").
 
@@ -127,7 +144,7 @@ Metrics.get_keys()
 
 Since there are only 112 records in our dataset, the quality of the models is highly dependent on splitting the sample into train and test subsamples. We should not use data from the same batch in both the training and the test set (the models must be able to recognize bearing signals that have not been encountered before), so we decided to use bootstrapped samples for training. Thus, we can generate an infinitely large number of values of the target metric, and average its values in order to have a stable estimate of the quality of the model.
 
-In our work, we use scikit-learn machine learning library to build models. Thus, we can use a ready-made method for tuning the models ([Usage example](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html "sklearn GridSearch")). But scikit-learn does not provide the ability to generate grouped train and test samples with overlaps. So, we have created a custom indices generator for our task:
+In our work, we use scikit-learn machine learning library to build models. Thus, we can use a ready-made method for tuning the models ([usage example](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html "sklearn GridSearch") in scikit-learn docs). But scikit-learn does not provide the ability to generate grouped train and test samples with overlaps. So, we have created a custom indices generator for our task:
 
 ```python
 import numpy as np
@@ -186,11 +203,12 @@ We also looked at a third party dataset (Cesar №2). We trained the models on t
 3. [MinMax scale](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.MinMaxScaler.html "MinMax scaler");
 4. [Robust scale](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.RobustScaler.html "Robust scaler").
 
-You can see all the results for both datasets [here](https://github.com/RuslanBabudzhan/QuantumBearings/experiments/ResultTables/public/ "Result tables"). The charts are [here](https://github.com/RuslanBabudzhan/QuantumBearings/experiments/images/public/GridSearch "GridSearch").
+You can see all the results for both datasets [here](https://github.com/RuslanBabudzhan/QuantumBearings/tree/master/experiments/ResultTables/public/ "Result tables"). The charts are [here](https://github.com/RuslanBabudzhan/QuantumBearings/tree/master/experiments/images/public/GridSearch "GridSearch").
 
-You can see all the results for both datasets [here](). The charts are [here]().
-## **Compare datasets**
-The most important, and therefore the most difficult, is to predict the quality of bearings from one dataset on the basis of training on another. To test various techniques, third-party datasets were used: [the first](https://zenodo.org/record/3898942#.YYwp_Lp8KUnhttps://zenodo.org/record/3898942#.YYwp_Lp8KUn), [the second](https://zenodo.org/record/5084405#.YYwp_bp8KUm).
+### Compare datasets
+
+---
+The most important, and therefore the most difficult, is to predict the quality of bearings from one dataset on the basis of training on another. To test various techniques, third-party datasets were used: [the first](https://zenodo.org/record/3898942#.YYwp_Lp8KUn), [the second](https://zenodo.org/record/5084405#.YYwp_bp8KUm).
 
 
 <p align="center">
@@ -216,7 +234,7 @@ The essence of the experiment is close to ours: data is collected from two beari
 
 During the exploratory data analysis, it was found that the acceleration rates in the third-party dataset are very different from ours, which is not strange: a different load on the shaft, a different type of bearings, a different rotation speed. An attempt was made to neutralize different experimental conditions using scalers: standard, robust, minmax. As expected, this did not lead to a strong improvement in the results. At the moment, other methods are being developed to bring different bearings to the same dimension.
 
-The Shuffler.PresplitedOverlapGroupCV method was created to implement a GridSearch with dataset glued from two different datasets, where part of one is used as training data, and part of the second for test data.
+The ``Shuffler.PresplitedOverlapGroupCV`` method was created to implement a GridSearch with dataset joined from two different datasets, where part of one is used as training data, and part of the second for test data.
 
 ```python
 from sklearn.model_selection import GridSearchCV
@@ -236,9 +254,11 @@ GSCV = GridSearchCV(estimator, grid, scoring=score_names, cv=cv, refit="f1")
 GSCV.fit(X, y, groups=groups)
 ```
 
-## **Feature selection**
+### Feature selection
 
-In the project, the results were tested on features selected using the RFE (Recursive Feature Elimination) algorithm in order to increase the speed of calculation of experiments, as well as to get rid of features that have a negative contribution or no contribution at all.
+---
+
+In the project, the results were tested on features selected using the RFE (Recursive Feature Elimination, [scikit-learn docs](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.RFE.html "RFE")) algorithm in order to increase the speed of calculation of experiments, as well as to get rid of features that have a negative impact or no impact at all.
 
 ```python
 from source.preprocessing.Features_selection import Features_selection
@@ -270,12 +290,16 @@ features_df = FS.select_with_method(estimators_dict, X, y, groups)
 | a1_y_signal_skew                   |	  3.853235      |
 | a1_y_signal_shannon_entropy	     |    4.195309      |
 
-Feature selection was tested on different datasets: raw, scaled (standard, robust, minmax) and on glued datasets.
+Feature selection was tested on different datasets: raw, scaled (standard, robust, minmax) and on concatenated datasets.
 
 Results before and after using the selected features:
 
+_under construction_
+
 
 ### Results
+
+---
 To find the best way to predict bearing condition, we tested a several number of models and datasets - there are currently 96 options. Since we are using bootstrap sampling, we want to store all the information about our experiments and have full reproducibility to significantly save computational time. Therefore, we decided to save the results of experiments through the [pydantic](https://pydantic-docs.helpmanual.io/) library to save the results into data models and serialize them to drive. All data models listened in ```source.datamodels.datamodels```.
 Data models provides information about datasets, model, train and test indices, predictions, metrics etc.   
 
@@ -288,7 +312,7 @@ Currently available results` data models:
 - GridSearch. Bootstrap with model tuning.
 - Bootstrap dataset comparison results. To create metrics distribution with training on subsamples of one dataset and testing on subsamples of another.
 
-To compare the quality of different models and different approaches, we created tables with the results of the experiments. They are automatically generated from the serialized results and contain information about the approach to processing the dataset and estimated scores. All results are available in [this folder](https://github.com/RuslanBabudzhan/QuantumBearings/experiments/ResultTables/public "public results").
+To compare the quality of different models and different approaches, we created tables with the results of the experiments. They are automatically generated from the serialized results and contain information about the approach to processing the dataset and estimated scores. All results are available in [this folder](https://github.com/RuslanBabudzhan/QuantumBearings/tree/master/experiments/ResultTables/public "public results").
 
 An example of creating such a table:
 ```python
