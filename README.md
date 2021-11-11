@@ -1,4 +1,3 @@
-
 ![Head plots](experiments/images/ReadMe/header_img.png)
 
 # QuantumBearings
@@ -71,6 +70,16 @@ prepared_data_our = splitter_processor.split_dataset(
     signal_data_columns=columns)
 ```
 
+In the Splitter method, it is possible to use the Fourier transform statistics as additional features.
+
+```python
+use_specter=True
+```
+
+<p align="center">
+    <img src="experiments/images/ReadMe/spectrum.png" alt="Signals FFT" width="600"/>
+</p>
+
 ## **Building models**
 
 An example of tuning the models is available in this [GridSearch Notebook](https://nbviewer.jupyter.org/github/RuslanBabudzhan/QuantumBearings/blob/master/notebooks/GridSearch.ipynb "Usage examples").
@@ -126,6 +135,10 @@ We also looked at a third party dataset (Cesar №2). We trained the models on t
 You can see all the results for both datasets [here](). The charts are [here]().
 ## **Compare datasets**
 The most important, and therefore the most difficult, is to predict the quality of bearings from one dataset on the basis of training on another. To test various techniques, third-party datasets were used: [the first](https://zenodo.org/record/3898942#.YYwp_Lp8KUnhttps://zenodo.org/record/3898942#.YYwp_Lp8KUn), [the second](https://zenodo.org/record/5084405#.YYwp_bp8KUm).
+
+<p align="center">
+    <img src="experiments/images/ReadMe/signal_cesar1.png" alt="Signals FFT" width="600"/>
+</p>
 
 <details>
 <summary><b>Cesar datasets details</b></summary>
