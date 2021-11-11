@@ -10,7 +10,6 @@ Most of the features for working with data can be seen in this [Usage examples n
 
 ## Table of Contents
 
----
 1. Data mining
 2. Data processing
 3. Building models
@@ -19,9 +18,8 @@ Most of the features for working with data can be seen in this [Usage examples n
 6. Results
 
 
-### Data mining
+## Data mining
 
----
 
 To create dataset, a test bench has been developed and configured to simulate the operation of the rotor system. Vibration sensors have been used to monitor the state of mechanisms in an automatic mode, to classify the quality of bearings operation with machine learning methods.
 
@@ -46,7 +44,8 @@ Data collection has been performed with a sampling rate of 3000 records per seco
 | without defect |  7   |  5   |
 
 The data was collected according to the acceleration-hold-stop scheme. First, the rotor was accelerated to the desired speed. Then there was a 10-second hold (hereinafter the stationary interval). Then the motor stopped. The recording was carried out for the full load interval.
-****
+
+---
 </details>
 
 The resulting dataset consists of 10265700 recordings that describe rotors behavior, 91600 per bearing on average. Collecting data has been uploaded on platform Kaggle and it is in the public domain ([link](https://www.kaggle.com/isaienkov/bearing-classification)). Detailed information about resulting dataset is presented below. For classification, the collected acceleration data of bearings in three axes: X, Y, Z will be used. The name of these features contains the bearing index and the acceleration axis.
@@ -78,9 +77,8 @@ mat_files_path = 'N1 Cesar Ricardo'
 data = Converter.cesar_convert(mat_files_path)
 ```
 
-### Data processing
+## Data processing
 
----
 Since training models on a raw signal is a very time-consuming process, it was decided to use various measures: [descriptive statistics](https://en.wikipedia.org/wiki/Descriptive_statistics), entropy ([Shannon](https://towardsdatascience.com/the-intuition-behind-shannons-entropy-e74820fe9800), [sample](https://en.wikipedia.org/wiki/Sample_entropy), [approximate](https://en.wikipedia.org/wiki/Approximate_entropy), [SVD](https://en.wikipedia.org/wiki/Singular_value_decomposition), [permutation](https://www.researchgate.net/publication/315504491_Permutation_Entropy_New_Ideas_and_Challenges)), fractal dimensions ([Petrosyan](https://hal.inria.fr/inria-00442374/document), [Higuchi](https://en.wikipedia.org/wiki/Higuchi_dimension), [Katz](https://hal.inria.fr/inria-00442374/document)), [detrended fluctuation analysis](https://en.wikipedia.org/wiki/Detrended_fluctuation_analysis), [crest factor](https://en.wikipedia.org/wiki/Crest_factor), [Hjorth parameters](https://en.wikipedia.org/wiki/Hjorth_parameters), zero crossing and [Hurst exponent](https://en.wikipedia.org/wiki/Hurst_exponent).
 
 In order to artificially expand the dataset, splitting signals into chunks was used, so when ``splits_number = 10`` we increase the sample 10 times, which, for example, allows us to use GridSearch more flexibly for selecting hyperparameters.
@@ -119,9 +117,8 @@ use_specter=True
 
 
 
-### Building models
+## Building models
 
----
 
 An example of tuning the models is available in this [GridSearch Notebook](https://nbviewer.jupyter.org/github/RuslanBabudzhan/QuantumBearings/blob/master/notebooks/GridSearch.ipynb "Usage examples").
 
@@ -195,6 +192,7 @@ The best option was to train the model on signal statistics. Best F1 score: 84%
 <img src="experiments/images/ReadMe/bar_DSM_GS_AXYZ_signal_22stats_6_11_2021_4_11_2021.png" alt="GridSearch Bar" width="900"/>
 <img src="experiments/images/ReadMe/kde_DSM_GS_AXYZ_signal_22stats_6_11_2021_4_11_2021.png" alt="GridSearch KDE" width="900"/>
 <img src="experiments/images/ReadMe/box_DSM_GS_AXYZ_signal_22stats_6_11_2021_4_11_2021.png" alt="GridSearch Box" width="900"/>
+---
 </details>
 
 We also looked at a third party dataset (Cesar №2). We trained the models on this set, using different signal scaling before splitting into batches. So, for this dataset we considered the following options:
@@ -205,9 +203,8 @@ We also looked at a third party dataset (Cesar №2). We trained the models on t
 
 You can see all the results for both datasets [here](https://github.com/RuslanBabudzhan/QuantumBearings/tree/master/experiments/ResultTables/public/ "Result tables"). The charts are [here](https://github.com/RuslanBabudzhan/QuantumBearings/tree/master/experiments/images/public/GridSearch "GridSearch").
 
-### Compare datasets
+## Compare datasets
 
----
 The most important, and therefore the most difficult, is to predict the quality of bearings from one dataset on the basis of training on another. To test various techniques, third-party datasets were used: [the first](https://zenodo.org/record/3898942#.YYwp_Lp8KUn), [the second](https://zenodo.org/record/5084405#.YYwp_bp8KUm).
 
 
@@ -230,6 +227,7 @@ The essence of the experiment is close to ours: data is collected from two beari
 | Bearings         | FAG 22205E1K                                                           |   -   |
 | Load             | Load on trabsmission: 1.4                                              | kN    |
 
+---
 </details>
 
 During the exploratory data analysis, it was found that the acceleration rates in the third-party dataset are very different from ours, which is not strange: a different load on the shaft, a different type of bearings, a different rotation speed. An attempt was made to neutralize different experimental conditions using scalers: standard, robust, minmax. As expected, this did not lead to a strong improvement in the results. At the moment, other methods are being developed to bring different bearings to the same dimension.
@@ -254,9 +252,8 @@ GSCV = GridSearchCV(estimator, grid, scoring=score_names, cv=cv, refit="f1")
 GSCV.fit(X, y, groups=groups)
 ```
 
-### Feature selection
+## Feature selection
 
----
 
 In the project, the results were tested on features selected using the RFE (Recursive Feature Elimination, [scikit-learn docs](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.RFE.html "RFE")) algorithm in order to increase the speed of calculation of experiments, as well as to get rid of features that have a negative impact or no impact at all.
 
@@ -297,9 +294,8 @@ Results before and after using the selected features:
 _under construction_
 
 
-### Results
+## Results
 
----
 To find the best way to predict bearing condition, we tested a several number of models and datasets - there are currently 96 options. Since we are using bootstrap sampling, we want to store all the information about our experiments and have full reproducibility to significantly save computational time. Therefore, we decided to save the results of experiments through the [pydantic](https://pydantic-docs.helpmanual.io/) library to save the results into data models and serialize them to drive. All data models listened in ```source.datamodels.datamodels```.
 Data models provides information about datasets, model, train and test indices, predictions, metrics etc.   
 
@@ -351,6 +347,7 @@ This table contains data about tuning models when training on our dataset.
 |        14        | GS        | RFC        | No         | Yes         | 500               | 100               | 0,91             | 0,802             | 0,345          | 0,462      | 0,345       | 0,986       |
 |        15        | GS        | KNN        | Yes        | No          | 500               | 100               | 0,953            | 0,893             | 0,703          | 0,774      | 0,703       | 0,986       |
 
+---
 </details>
 
 
