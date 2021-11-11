@@ -1,6 +1,3 @@
-
-![Head plots](experiments/images/ReadMe/header_img.png)
-
 # QuantumBearings
 
 **QuantumBearings** - project the essence of which is the detection of defective rolling bearings with machine learning methods based on bearings acceleration data. 
@@ -56,7 +53,19 @@ The resulting dataset consists of 10265700 recordings that describe rotors behav
 |     RPM/HZ     | 	Rotation speed                                                |  rpm  |
 |       W	       | The motor power at a time                                      | Watts |
 
+We also looked at the possibility of using off-the-shelf datasets. So far we have looked at two third-party datasets:
+- First César Ricardo Soto-Ocampo et al. dataset ([link](https://zenodo.org/record/3898942#.YYwVSWDP2Um "Cesar 1")). Consists 45 bearings. Further referred to as Cesar №1
+- Second César Ricardo Soto-Ocampo et al. dataset ([link](https://zenodo.org/record/5084405#.YYwVSWDP2Ul "Cesar 2")). Consists 45 bearings. Further referred to as Cesar №2
 
+Both datasets presented as *.mat types. We have converted these datasets into our format as follows:
+
+```python
+from source.preprocessing.converter import Converter
+
+
+mat_files_path = 'N1 Cesar Ricardo'
+data = Converter.cesar_convert(mat_files_path)
+```
 
 ### Data processing
 _under construction_
@@ -78,16 +87,46 @@ from source.datamodels.iterators import Metrics
 
 Metrics.get_keys()
 ```
+```
+['accuracy', 'precision', 'recall', 'f1', 'TPR', 'TNR']
+```
 
 Since there are only 112 records in our dataset, the quality of the models is highly dependent on splitting the sample into train and test subsamples. We should not use data from the same batch in both the training and the test set (the models must be able to recognize bearing signals that have not been encountered before), so we decided to use bootstrapped samples for training. Thus, we can generate an infinitely large number of values of the target metric, and average its values in order to have a stable estimate of the quality of the model.
 
 In our work, we use scikit-learn machine learning library to build models. Thus, we can use a ready-made method for tuning the models ([Usage example](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html "sklearn GridSearch")). But scikit-learn does not provide the ability to generate grouped train and test samples with overlaps. So, we have created a custom indices generator for our task:
 ```python
+import numpy as np
 from source.processes.Shuffler import OverlapGroupCV
 
 
-cv = OverlapGroupCV(train_size=0.7, n_repeats=100).split(X, y, groups)
+X = np.arange(32).reshape((8, 4))  # Dataset with 8 rows
+y = np.arange(2).repeat(4)  # targets
+groups = np.arange(4).repeat(2)  # group label for each row in X
+
+cv = OverlapGroupCV(train_size=0.5, n_repeats=100).split(X, y, groups)
+
+train_subset_indices, test_subset_indices = next(cv)
+
+print(f"Train subset indices: {train_subset_indices}\nTest subset indices: {test_subset_indices}\n")
+print(f"Train subset: \n{X[train_subset_indices]}\n\nTest subset: \n{X[test_subset_indices]}")
 ```
+```
+Train subset indices: [0, 1, 4, 5]
+Test subset indices: [2, 3, 6, 7]
+
+Train subset: 
+[[ 0  1  2  3]
+ [ 4  5  6  7]
+ [16 17 18 19]
+ [20 21 22 23]]
+
+Test subset: 
+[[ 8  9 10 11]
+ [12 13 14 15]
+ [24 25 26 27]
+ [28 29 30 31]]
+```
+Note that for proper work it is necessary that the labels for all elements from one group are the same. Otherwise, it will shoot your ass.
 
 We tested several types of dataset preprocessing. For our dataset, we considered the following options:
 1. Use both signal and spectrum of all 6 axes and all 22 statistics;
