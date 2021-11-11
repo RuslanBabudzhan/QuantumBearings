@@ -190,9 +190,28 @@ from source.preprocessing.Features_selection import Features_selection
 features_df = FS.select_with_method(estimators_dict, X, y, groups)
 ```
 
-<p align="center">
-  <img src=experiments/images/ReadMe/selected_features_preview.png>
-</p>
+| RFE_LR                             | Importance       |
+| :--------------------------------: |:----------------:|
+| a2_y_signal_detrended_fluctuation	 |   -9.352930      |
+|  a2_y_signal_approx_entropy	     |   -9.139112      |
+| a2_y_signal_shannon_entropy	     |   -8.711998      |
+| a2_y_signal_higuchi_fd	         |   -6.908806      |
+| a1_y_signal_approx_entropy    	 |   -5.448357      |
+| a2_y_specter_hurst            	 |   -4.510189      |
+| a1_y_specter_complexity            |   -4.200517      |
+| a2_y_signal_skew	                 |   -4.140295      |
+| a1_y_signal_permutation_entropy    |   -3.638508      |
+| a1_y_specter_activity	             |   -3.553095      |
+| a1_y_signal_hurst	                 |   -2.791176      |
+| a2_y_specter_approx_entropy	     |   -2.587472      |
+| a2_y_signal_sample_entropy         |    2.290875      |
+| a1_y_specter_approx_entropy        |    2.345605      |
+| a2_y_specter_activity	             |    2.623136      |
+| a2_y_specter_svd_entropy	         |    3.002337      |
+| a2_y_specter_detrended_fluctuation |    3.492308      |
+| a1_y_signal_mean	                 |    3.575099      |
+| a1_y_signal_skew                   |	  3.853235      |
+| a1_y_signal_shannon_entropy	     |    4.195309      |
 
 Feature selection was tested on different datasets: raw, scaled (standard, robust, minmax) and on glued datasets.
 
@@ -201,3 +220,5 @@ Results before and after using the selected features:
 
 ## **Results**
 _under construction_
+
+
