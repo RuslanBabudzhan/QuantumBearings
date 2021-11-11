@@ -47,6 +47,10 @@ class BaseResultsData(ABC, BaseModel):
                                                    enumerator=Metrics, long_description=" Dict of scores (direct/mean),"
                                                    " for keys use Metrics.<metric>.name"))
 
+    signal_scaler: Optional[str] = Field(default_factory="",
+                                         metadata=dict(short_description="Scaler", to_csv=True, printable=True, enumerator=None,
+                                         long_description=" Scaler of raw data. Use Scalers.<scaler>.name"))
+
     def __str__(self):
         result_string = ""
         for field_name, field in zip(self.__fields__.keys(), self.__fields__.values()):
@@ -71,9 +75,9 @@ class SingleDatasetsComparisonResults(SingleRunResults):
                                                   enumerator=None, long_description="Dataset used for train"))
     test_dataset_name: str = Field(metadata=dict(short_description="Test DF", to_csv=True, printable=True,
                                                  enumerator=None, long_description="Dataset used for test"))
-    signal_scaler: Optional[str] = Field(default_factory="",
-                                         metadata=dict(short_description="Scaler", to_csv=True, printable=True, enumerator=None,
-                                         long_description=" Scaler of raw data. Use Scalers.<scaler>.name"))
+    # signal_scaler: Optional[str] = Field(default_factory="",
+    #                                      metadata=dict(short_description="Scaler", to_csv=True, printable=True, enumerator=None,
+    #                                      long_description=" Scaler of raw data. Use Scalers.<scaler>.name"))
 
 
 class BootstrapResults(BaseResultsData):
