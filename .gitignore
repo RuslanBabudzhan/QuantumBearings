@@ -21,8 +21,7 @@ notebooks
 # ignore legacy
 source/preprocessing/Features_selection.py
 source/preprocessing/cesars.py
-source/processes/base.py
-source/processes/bootstraps.py
+source/preprocessing/spectrumsplitter.py
 source/processes/Stats_features.py
 *.pyc
 
