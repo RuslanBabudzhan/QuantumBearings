@@ -254,48 +254,6 @@ GSCV = GridSearchCV(estimator, grid, scoring=score_names, cv=cv, refit="f1")
 GSCV.fit(X, y, groups=groups)
 ```
 
-## Feature selection
-
-
-In the project, the results were tested on features selected using the RFE (Recursive Feature Elimination, [scikit-learn docs](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.RFE.html "RFE")) algorithm in order to increase the speed of calculation of experiments, as well as to get rid of features that have a negative impact or no impact at all.
-
-```python
-from source.preprocessing.Features_selection import Features_selection
-
-
-features_df = FS.select_with_method(estimators_dict, X, y, groups)
-```
-
-| RFE_LR                             | Importance       |
-| :--------------------------------: |:----------------:|
-| a2_y_signal_detrended_fluctuation	 |   -9.352930      |
-|  a2_y_signal_approx_entropy	     |   -9.139112      |
-| a2_y_signal_shannon_entropy	     |   -8.711998      |
-| a2_y_signal_higuchi_fd	         |   -6.908806      |
-| a1_y_signal_approx_entropy    	 |   -5.448357      |
-| a2_y_specter_hurst            	 |   -4.510189      |
-| a1_y_specter_complexity            |   -4.200517      |
-| a2_y_signal_skew	                 |   -4.140295      |
-| a1_y_signal_permutation_entropy    |   -3.638508      |
-| a1_y_specter_activity	             |   -3.553095      |
-| a1_y_signal_hurst	                 |   -2.791176      |
-| a2_y_specter_approx_entropy	     |   -2.587472      |
-| a2_y_signal_sample_entropy         |    2.290875      |
-| a1_y_specter_approx_entropy        |    2.345605      |
-| a2_y_specter_activity	             |    2.623136      |
-| a2_y_specter_svd_entropy	         |    3.002337      |
-| a2_y_specter_detrended_fluctuation |    3.492308      |
-| a1_y_signal_mean	                 |    3.575099      |
-| a1_y_signal_skew                   |	  3.853235      |
-| a1_y_signal_shannon_entropy	     |    4.195309      |
-
-Feature selection was tested on different datasets: raw, scaled (standard, robust, minmax) and on concatenated datasets.
-
-Results before and after using the selected features:
-
-_under construction_
-
-
 ## Results
 
 To find the best way to predict bearing condition, we tested a several number of models and datasets - there are currently 96 options. Since we are using bootstrap sampling, we want to store all the information about our experiments and have full reproducibility to significantly save computational time. Therefore, we decided to save the results of experiments through the [pydantic](https://pydantic-docs.helpmanual.io/) library to save the results into data models and serialize them to drive. All data models listened in ```source.datamodels.datamodels```.
