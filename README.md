@@ -14,8 +14,7 @@ Most of the features for working with data can be seen in this [Usage examples n
 2. Data processing
 3. Building models
 4. Compare datasets
-5. Feature selection
-6. Results
+5. Results
 
 
 ## Data mining
